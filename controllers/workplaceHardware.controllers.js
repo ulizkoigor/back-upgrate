@@ -19,23 +19,32 @@ class metrostockController {
     }
 
     load = async (req, res) => {
-        console.log(req.query)
-        const {status_for_search, type_for_search} = req.query
+        const {status_for_search, id_for_search, type_for_search, characteristics_for_search, trebovanie_for_search, nomenclature_number_for_search} = req.query
         const workplaceHardware = await pool.query(`
             SELECT  * FROM hardware 
-             WHERE  (status LIKE '${status_for_search}'
-                    AND type LIKE '${type_for_search}')
+             WHERE  (                   status LIKE '${status_for_search}' AND
+                                      id::text LIKE '${id_for_search}' AND
+                                          type LIKE '${type_for_search}' AND
+                        LOWER(characteristics) LIKE LOWER('%${characteristics_for_search}%') AND
+                           trebovanie_id::text LIKE '${trebovanie_for_search}' AND
+                           nomenclature_number LIKE '%${nomenclature_number_for_search}%'
+                    )
           ORDER BY  id
           `)
         res.json(workplaceHardware.rows)
     }
 
     loadGrouped = async (req, res) => {
+        const {status_for_search, type_for_search, characteristics_for_search} = req.query
         const workplaceHardwareGrouped = await pool.query(`
             SELECT  type,
                     characteristics,
                     COUNT(*)
               FROM  hardware
+             WHERE  (               status LIKE '${status_for_search}' AND
+                                      type LIKE '${type_for_search}' AND
+                    LOWER(characteristics) LIKE LOWER('%${characteristics_for_search}%')
+                    )
           GROUP BY  type,
                     characteristics
           `)
