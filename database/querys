@@ -1,0 +1,364 @@
+---getStockList---
+SELECT
+    place.id place_id,
+    place.building place_building,
+    place.room place_room,
+    type_place.title type_place_title
+FROM place
+LEFT JOIN type_place ON (place.type_place_id = type_place.id)
+WHERE (type_place.title = 'Склад')
+ORDER BY place.id
+---getStockList---
+
+
+
+---getPlaceList---
+            SELECT
+                place.id,
+                place.building building,
+                place.room room,
+                place.department department,
+                place.employee_position employee_position,
+                place.employee_name employee_name,
+                type_place.title type_place_title,
+                place.description description
+            FROM place
+            LEFT JOIN type_place ON (place.type_place_id = type_place.id)
+            WHERE  (place.id::text LIKE '${req.query.place_id_for_search}'
+                AND place.building LIKE '${req.query.building_for_search}'
+                AND place.room LIKE '%${req.query.room_for_search}%'
+                AND place.department LIKE '${req.query.department_for_search}'
+                AND LOWER(place.employee_name) LIKE '%${req.query.name_for_search}%'
+                AND LOWER(place.employee_position) LIKE '%${req.query.employee_position_for_search}%'
+                AND type_place.title LIKE '${req.query.type_place_for_search}'
+                AND place.description != 'Принтер/МФУ')
+            ORDER BY id
+---getPlaceList---
+
+
+
+---getMovement---
+            SELECT
+                movement.id,
+                movement.date date,
+                movement.employee_name_at_time_of_movement employee_name_at_time_of_movement,
+                hardware.id hardware_id,
+                hardware.type type_hardware,
+                hardware.characteristics characteristics_hardware,
+                place.id place_id,
+                place.building building,
+                place.room room,
+                place.department,
+                place.description place_description,
+                place.employee_position employee_position,
+                place.employee_name employee_name,
+                type_place.title type_place_title
+            FROM movement
+            LEFT JOIN hardware ON (movement.hardware_id = hardware.id)
+            LEFT JOIN place ON (place.id = movement.place_id)
+            LEFT JOIN type_place ON (place.type_place_id = type_place.id)
+            WHERE (place.type_place_id <> 1)
+            ORDER BY movement.id DESC
+---getMovement---
+
+
+
+---getTrebovanieNakladnayaList---
+   SELECT  trebovanie_nakladnaya.id,
+           trebovanie_nakladnaya.date,
+           trebovanie_nakladnaya.comment,
+           trebovanie_nakladnaya.contractor,
+           trebovanie_nakladnaya.an_invoice_for_payment,
+           trebovanie_nakladnaya.shipping_document,
+           type_material_values.name type_material_values_name,
+     FROM  trebovanie_nakladnaya
+LEFT JOIN  type_material_values ON trebovanie_nakladnaya.type_material_values_id = type_material_values.id
+    WHERE  (trebovanie_nakladnaya.id::text LIKE '${req.query.trebovanie_nakladnaya_id_for_search}')
+ ORDER BY  trebovanie_nakladnaya.id
+     DESC
+---getTrebovanieNakladnayaList---
+
+
+
+CREATE FUNCTION add_hardware(count_for_add INTEGER,
+                             stock_id_for_add INTEGER,
+                             type_for_add TEXT,
+                             characteristics_for_add TEXT,
+                             trebovanie_nakladnaya_id_for_add INTEGER,
+                             nomenklatur_number_for_add TEXT,
+                             date_for_add TIMESTAMP WITH TIME ZONE)
+RETURNS void AS $$
+DECLARE
+	new_hardware_id INTEGER;
+BEGIN
+	FOR i IN 1..count_for_add
+        	LOOP
+			INSERT INTO  hardware (type, characteristics, trebovanie_nakladnaya_id, nomenklatur_number)
+			     VALUES  (type_for_add, characteristics_for_add, trebovanie_nakladnaya_id_for_add, nomenklatur_number_for_add)
+			  RETURNING  id INTO new_hardware_id;
+
+			INSERT INTO  movement (hardware_id, place_id, date, employee_name_at_time_of_movement)
+			     VALUES (new_hardware_id, stock_id_for_add, date_for_add, '');
+        	END LOOP;
+END;
+$$
+LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION add_consumable_for_printers(count_for_add INTEGER,
+                                            stock_id_for_add INTEGER,
+                                            type_for_add TEXT,
+                                            characteristics_for_add TEXT,
+                                            trebovanie_nakladnaya_id_for_add INTEGER,
+                                            nomenklatur_number_for_add TEXT,
+                                            date_for_add TIMESTAMP WITH TIME ZONE)
+RETURNS void AS $$
+DECLARE
+	new_consumable_for_printers_id INTEGER;
+BEGIN
+	FOR i IN 1..count_for_add
+        	LOOP
+			INSERT INTO  consumable_for_printers (type, characteristics, trebovanie_nakladnaya_id, nomenklatur_number)
+			     VALUES  (type_for_add, characteristics_for_add, trebovanie_nakladnaya_id_for_add, nomenklatur_number_for_add)
+			  RETURNING  id INTO new_consumable_for_printers_id;
+
+			INSERT INTO  consumable_for_printers_movement (consumable_for_printers_id, place_id, date, employee_name_at_time_of_movement, printer_characteristics_at_time_of_movement)
+			     VALUES (new_consumable_for_printers_id, stock_id_for_add, date_for_add, '', '');
+        	END LOOP;
+END;
+$$
+LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION get_hardware_list_with_place(status_for_search TEXT,
+                                             id_for_search TEXT,
+                                             type_for_search TEXT,
+                                             characteristics_for_search TEXT,
+                                             trebovanie_nakladnaya_id_for_search TEXT,
+                                             nomenklatur_number_for_search TEXT)
+RETURNS TABLE(id INTEGER, type TEXT, characteristics TEXT, type_material_values_name TEXT, trebovanie_nakladnaya_id INTEGER, nomenklatur_number TEXT, place_id INTEGER,
+              place_building TEXT, place_room TEXT, place_department TEXT, employee_position TEXT, employee_name TEXT, description TEXT, type_place_title TEXT, date TIMESTAMP)
+AS $$
+	DECLARE
+		record_hardware RECORD;
+		record_place RECORD;
+		temp_place_id integer;
+	BEGIN
+   		FOR record_hardware IN SELECT * FROM hardware WHERE
+   		       (hardware.id::text LIKE id_for_search
+   		    AND LOWER(hardware.type) LIKE LOWER(type_for_search)
+   		    AND LOWER(hardware.characteristics) LIKE LOWER(characteristics_for_search)
+   		    AND hardware.trebovanie_nakladnaya_id::text LIKE trebovanie_nakladnaya_id_for_search
+   		    AND hardware.nomenklatur_number LIKE nomenklatur_number_for_search)
+   		    ORDER BY hardware.id DESC
+        		LOOP
+				SELECT movement.place_id INTO temp_place_id FROM movement WHERE movement.hardware_id = record_hardware.id ORDER BY movement.id DESC LIMIT 1;
+				SELECT place.id,
+                       place.building building,
+                       place.room room,
+                       place.department department,
+                       place.employee_position employee_position,
+                       place.employee_name employee_name,
+                       type_place.title type_place_title,
+                       place.description description INTO STRICT record_place FROM place LEFT JOIN type_place ON (place.type_place_id = type_place.id) WHERE place.id = temp_place_id;
+				IF record_place.type_place_title <> status_for_search THEN
+					CONTINUE;
+				ELSE
+					IF record_place.type_place_title = status_for_search THEN
+						id = record_hardware.id;
+						type = record_hardware.type;
+						characteristics = record_hardware.characteristics;
+						SELECT type_material_values.name INTO type_material_values_name FROM trebovanie_nakladnaya LEFT JOIN type_material_values ON (type_material_values.id = trebovanie_nakladnaya.type_material_values_id) WHERE (trebovanie_nakladnaya.id = record_hardware.trebovanie_nakladnaya_id);
+						trebovanie_nakladnaya_id = record_hardware.trebovanie_nakladnaya_id;
+						nomenklatur_number = record_hardware.nomenklatur_number;
+						place_id = record_place.id;
+						place_building = record_place.building;
+						place_room = record_place.room;
+						place_department = record_place.department;
+						employee_position = record_place.employee_position;
+						employee_name = record_place.employee_name;
+						description = record_place.description;
+						type_place_title = record_place.type_place_title;
+             			RETURN next;
+					END IF;
+				END IF;
+        		END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+CREATE FUNCTION get_list_hardware_for_place(INTEGER) RETURNS TABLE (hardware_id INTEGER, type_hardware_title VARCHAR, characteristics VARCHAR) AS
+$$
+    DECLARE
+        rec_movement RECORD;
+        temp_place_id INTEGER;
+        rec_hardware RECORD;
+    BEGIN
+        FOR rec_movement IN SELECT * FROM movement WHERE place_id = $1
+        LOOP
+            SELECT movement.place_id into temp_place_id FROM movement where movement.hardware_id = rec_movement.hardware_id ORDER BY movement.id DESC limit 1;
+            IF temp_place_id = $1 THEN
+                SELECT * INTO STRICT rec_hardware FROM hardware WHERE hardware.id = rec_movement.hardware_id;
+                hardware_id = rec_hardware.id;
+                SELECT title INTO type_hardware_title FROM type_hardware WHERE type_hardware.id = rec_hardware.type_hardware_id;
+                characteristics = rec_hardware.characteristics;
+                RETURN NEXT;
+            END IF;
+        END LOOP;
+    END;
+$$
+LANGUAGE plpgsql;
+
+
+
+
+CREATE FUNCTION add_trebovanie_nakladnaya(type_material_values_id_for_add INTEGER,
+                                          date_for_add TIMESTAMP,
+                                          contractor_for_add TEXT,
+                                          an_invoice_for_payment_for_add TEXT,
+                                          shipping_document_for_add TEXT,
+                                          comment_for_add TEXT)
+RETURNS INTEGER AS $$
+DECLARE
+	new_trebovanie_nakladnaya_id INTEGER;
+BEGIN
+    INSERT INTO  trebovanie_nakladnaya (type_material_values_id,
+                                       date,
+                                       comment,
+                                       shipping_document,
+                                       an_invoice_for_payment,
+                                       contractor)
+         VALUES (type_material_values_id_for_add,
+                 date_for_add,
+                 comment_for_add,
+                 shipping_document_for_add,
+                 an_invoice_for_payment_for_add,
+                 contractor_for_add)
+      RETURNING  id INTO new_trebovanie_nakladnaya_id;
+    RETURN new_trebovanie_nakladnaya_id;
+END;
+$$
+LANGUAGE plpgsql;
+
+
+
+
+CREATE FUNCTION get_consumable_for_printers_list(type_for_search TEXT, characteristics_for_search TEXT, trebovanie_nakladnaya_id_for_search TEXT, nomenklatur_number_for_search TEXT)
+RETURNS TABLE(id INTEGER, type TEXT, characteristics TEXT, trebovanie_nakladnaya_id INTEGER, nomenklatur_number TEXT, place_id INTEGER, place_building TEXT, place_room TEXT) AS $$
+	DECLARE
+		record_consumable_for_printers RECORD;
+		record_place RECORD;
+		temp_place_id integer;
+	BEGIN
+   		FOR record_consumable_for_printers IN SELECT * FROM consumable_for_printers WHERE
+   		       (consumable_for_printers.type LIKE type_for_search
+   		    AND LOWER(consumable_for_printers.characteristics) LIKE LOWER(characteristics_for_search)
+   		    AND consumable_for_printers.trebovanie_nakladnaya_id::text LIKE trebovanie_nakladnaya_id_for_search
+   		    AND LOWER(consumable_for_printers.nomenklatur_number) LIKE LOWER(nomenklatur_number_for_search))
+   		    ORDER BY consumable_for_printers.id DESC
+        		LOOP
+                    SELECT consumable_for_printers_movement.place_id INTO temp_place_id FROM consumable_for_printers_movement WHERE consumable_for_printers_movement.consumable_for_printers_id = record_consumable_for_printers.id ORDER BY consumable_for_printers_movement.id DESC LIMIT 1;
+                    SELECT place.id, place.building building, place.room room, type_place.title type_place_title
+                        INTO STRICT record_place FROM place LEFT JOIN type_place ON (place.type_place_id = type_place.id) WHERE place.id = temp_place_id;
+                    IF record_place.type_place_title <> 'Склад' THEN
+                        CONTINUE;
+                    ELSE
+                        IF record_place.type_place_title = 'Склад' THEN
+                            id = record_consumable_for_printers.id;
+                            type = record_consumable_for_printers.type;
+                            characteristics = record_consumable_for_printers.characteristics;
+                            trebovanie_nakladnaya_id = record_consumable_for_printers.trebovanie_nakladnaya_id;
+                            nomenklatur_number = record_consumable_for_printers.nomenklatur_number;
+                            place_id = record_place.id;
+                            place_building = record_place.building;
+                            place_room = record_place.room;
+                            RETURN next;
+                        END IF;
+                    END IF;
+        		END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
+
+---
+
+CREATE FUNCTION make_move_consumable_for_printers(type_for_add TEXT,
+                                                  characteristics_for_add TEXT,
+                                                  place_id INTEGER,
+                                                  date TIMESTAMP WITH TIME ZONE,
+                                                  printer_characteristics_at_time_of_movement TEXT,
+                                                  employee_name_at_time_of_movement TEXT)
+RETURNS INTEGER AS $$
+	DECLARE
+		temp_consumable_for_printers_id INTEGER;
+		new_id INTEGER;
+	BEGIN
+	    SELECT get_consumable_for_printers_list.id INTO temp_consumable_for_printers_id FROM get_consumable_for_printers_list(type_for_add, characteristics_for_add,'%','%') LIMIT 1;
+	    INSERT INTO consumable_for_printers_movement (consumable_for_printers_id, place_id, date, printer_characteristics_at_time_of_movement, employee_name_at_time_of_movement) VALUES (temp_consumable_for_printers_id, $3, $4, $5, $6) RETURNING id INTO new_id;
+	    RETURN new_id;
+	END;
+$$ LANGUAGE plpgsql;
+
+---
+
+CREATE FUNCTION make_move_hardware(type_for_add TEXT,
+                                   characteristics_for_add TEXT,
+                                   place_id_for_add INTEGER,
+                                   date_for_add TIMESTAMP WITH TIME ZONE,
+                                   employee_name_at_time_of_movement_for_add TEXT)
+RETURNS INTEGER AS $$
+	DECLARE
+		hardware_id_for_add INTEGER;
+		movement_id INTEGER;
+	BEGIN
+	    SELECT get_hardware_list_with_place.id INTO hardware_id_for_add FROM get_hardware_list_with_place('Склад', '%', type_for_add, characteristics_for_add, '%', '%') LIMIT 1;
+        INSERT INTO movement (hardware_id, place_id, date, employee_name_at_time_of_movement) VALUES (hardware_id_for_add, place_id_for_add, date_for_add, employee_name_at_time_of_movement_for_add) RETURNING id INTO movement_id;
+	    RETURN movement_id;
+	END;
+$$ LANGUAGE plpgsql;
+
+
+---
+
+---getHistoryForPlaceOfPrinterList---
+             SELECT  consumable_for_printers_movement.id consumable_for_printers_movement_id,
+                     consumable_for_printers_movement.consumable_for_printers_id consumable_for_printers_id,
+                     consumable_for_printers_movement.place_id place_id,
+                     consumable_for_printers_movement.date date,
+                     consumable_for_printers_movement.printer_characteristics_at_time_of_movement consumable_for_printers_movement_printer_characteristics_at_time_of_movement,
+                     consumable_for_printers_movement.employee_name_at_time_of_movement consumable_for_printers_movement_employee_name_at_time_of_movement,
+                     consumable_for_printers.type consumable_for_printers_type,
+                     consumable_for_printers.characteristics consumable_for_printers_characteristics,
+                     place.building building,
+                     place.room room,
+                     place.department
+               FROM  consumable_for_printers_movement
+          LEFT JOIN  consumable_for_printers ON (consumable_for_printers_movement.consumable_for_printers_id = consumable_for_printers.id)
+          LEFT JOIN  place ON (consumable_for_printers_movement.place_id = place.id)
+              WHERE  (consumable_for_printers_movement.place_id != 1 AND consumable_for_printers_movement.place_id::text LIKE '${place_of_printer_id}')
+           ORDER BY  consumable_for_printers_movement.date DESC
+---getHistoryForPlaceOfPrinterList---
+
+
+
+CREATE FUNCTION status_hardware() RETURNS void
+AS $$
+	DECLARE
+		record_hardware RECORD;
+		record_place RECORD;
+		temp_place_id INTEGER;
+		temp_type_place_title TEXT;
+	BEGIN
+   		FOR record_hardware IN SELECT * FROM hardware
+        		LOOP
+                    SELECT movement.place_id INTO temp_place_id FROM movement WHERE movement.hardware_id = record_hardware.id ORDER BY movement.id DESC LIMIT 1;
+                    SELECT type_place.title type_place_title INTO temp_type_place_title FROM place LEFT JOIN type_place ON (place.type_place_id = type_place.id) WHERE place.id = temp_place_id;
+                    IF temp_type_place_title = 'Склад' THEN
+                        UPDATE hardware SET status = 'На складе' WHERE id = record_hardware.id;
+                    END IF;
+        		END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
