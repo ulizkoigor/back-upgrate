@@ -356,9 +356,79 @@ AS $$
         		LOOP
                     SELECT movement.place_id INTO temp_place_id FROM movement WHERE movement.hardware_id = record_hardware.id ORDER BY movement.id DESC LIMIT 1;
                     SELECT type_place.title type_place_title INTO temp_type_place_title FROM place LEFT JOIN type_place ON (place.type_place_id = type_place.id) WHERE place.id = temp_place_id;
-                    IF temp_type_place_title = 'Склад' THEN
-                        UPDATE hardware SET status = 'На складе' WHERE id = record_hardware.id;
+                    IF temp_type_place_title = 'Рабочее место' THEN
+                        UPDATE hardware SET status = 'В эксплуатации' WHERE id = record_hardware.id;
                     END IF;
+        		END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE FUNCTION select_workplace_hardware_with_place(
+    status_for_search TEXT,
+    id_for_search TEXT,
+    type_for_search TEXT,
+    characteristics_for_search TEXT,
+    trebovanie_id_for_search TEXT,
+    nomenclature_number_for_search TEXT)
+RETURNS TABLE(
+    id INTEGER,
+    type TEXT,
+    characteristics TEXT,
+    trebovanie_id INTEGER,
+    nomenclature_number TEXT,
+    place_id INTEGER,
+    place_building TEXT,
+    place_room TEXT,
+    place_department TEXT,
+    employee_position TEXT,
+    employee_name TEXT,
+    description TEXT,
+    type_place_title TEXT, date TIMESTAMP)
+AS $$
+	DECLARE
+		record_hardware RECORD;
+		record_place RECORD;
+		temp_place_id integer;
+	BEGIN
+   		FOR record_hardware IN SELECT * FROM hardware WHERE
+   		       (hardware.id::text LIKE id_for_search
+   		    AND LOWER(hardware.type) LIKE LOWER(type_for_search)
+   		    AND LOWER(hardware.characteristics) LIKE LOWER(characteristics_for_search)
+   		    AND hardware.trebovanie_nakladnaya_id::text LIKE trebovanie_nakladnaya_id_for_search
+   		    AND hardware.nomenklatur_number LIKE nomenklatur_number_for_search)
+   		    ORDER BY hardware.id DESC
+        		LOOP
+				SELECT movement.place_id INTO temp_place_id FROM movement WHERE movement.hardware_id = record_hardware.id ORDER BY movement.id DESC LIMIT 1;
+				SELECT place.id,
+                       place.building building,
+                       place.room room,
+                       place.department department,
+                       place.employee_position employee_position,
+                       place.employee_name employee_name,
+                       type_place.title type_place_title,
+                       place.description description INTO STRICT record_place FROM place LEFT JOIN type_place ON (place.type_place_id = type_place.id) WHERE place.id = temp_place_id;
+				IF record_place.type_place_title <> status_for_search THEN
+					CONTINUE;
+				ELSE
+					IF record_place.type_place_title = status_for_search THEN
+						id = record_hardware.id;
+						type = record_hardware.type;
+						characteristics = record_hardware.characteristics;
+						SELECT type_material_values.name INTO type_material_values_name FROM trebovanie_nakladnaya LEFT JOIN type_material_values ON (type_material_values.id = trebovanie_nakladnaya.type_material_values_id) WHERE (trebovanie_nakladnaya.id = record_hardware.trebovanie_nakladnaya_id);
+						trebovanie_nakladnaya_id = record_hardware.trebovanie_nakladnaya_id;
+						nomenklatur_number = record_hardware.nomenklatur_number;
+						place_id = record_place.id;
+						place_building = record_place.building;
+						place_room = record_place.room;
+						place_department = record_place.department;
+						employee_position = record_place.employee_position;
+						employee_name = record_place.employee_name;
+						description = record_place.description;
+						type_place_title = record_place.type_place_title;
+             			RETURN next;
+					END IF;
+				END IF;
         		END LOOP;
    	END;
 $$ LANGUAGE plpgsql;

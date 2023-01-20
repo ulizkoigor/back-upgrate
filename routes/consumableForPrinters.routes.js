@@ -1,6 +1,5 @@
 const express = require('express')
 const consumableForPrintersController = require('../controllers/consumableForPrinters.controllers')
-const placeController = require("../controllers/place.controllers");
 
 const consumableForPrintersRouter = express.Router()
 
