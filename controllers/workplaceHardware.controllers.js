@@ -25,7 +25,7 @@ class metrostockController {
              WHERE  (                   status LIKE '${status_for_search}' AND
                                       id::text LIKE '${id_for_search}' AND
                                           type LIKE '${type_for_search}' AND
-                        LOWER(characteristics) LIKE LOWER('%${characteristics_for_search}%') AND
+                        LOWER(characteristics) LIKE  LOWER('%${characteristics_for_search}%') AND
                            trebovanie_id::text LIKE '${trebovanie_for_search}' AND
                            nomenclature_number LIKE '%${nomenclature_number_for_search}%'
                     )
