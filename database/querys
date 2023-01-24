@@ -364,12 +364,13 @@ AS $$
 $$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION select_workplace_hardware_with_place(
+CREATE FUNCTION select_hardwares_for_workplace(
     status_for_search TEXT,
     id_for_search TEXT,
     type_for_search TEXT,
     characteristics_for_search TEXT,
     trebovanie_id_for_search TEXT,
+    type_material_values_for_search TEXT,
     nomenclature_number_for_search TEXT)
 RETURNS TABLE(
     id INTEGER,
@@ -382,40 +383,46 @@ RETURNS TABLE(
     place_room TEXT,
     place_department TEXT,
     employee_position TEXT,
-    employee_name TEXT,
-    description TEXT,
-    type_place_title TEXT, date TIMESTAMP)
+    employee_name TEXT)
 AS $$
 	DECLARE
-		record_hardware RECORD;
-		record_place RECORD;
-		temp_place_id integer;
+		hardware RECORD;
+		workplace RECORD;
+		id_workplace INTEGER;
 	BEGIN
-   		FOR record_hardware IN SELECT * FROM hardware WHERE
-   		       (hardware.id::text LIKE id_for_search
-   		    AND LOWER(hardware.type) LIKE LOWER(type_for_search)
-   		    AND LOWER(hardware.characteristics) LIKE LOWER(characteristics_for_search)
-   		    AND hardware.trebovanie_nakladnaya_id::text LIKE trebovanie_nakladnaya_id_for_search
-   		    AND hardware.nomenklatur_number LIKE nomenklatur_number_for_search)
-   		    ORDER BY hardware.id DESC
-        		LOOP
-				SELECT movement.place_id INTO temp_place_id FROM movement WHERE movement.hardware_id = record_hardware.id ORDER BY movement.id DESC LIMIT 1;
-				SELECT place.id,
-                       place.building building,
-                       place.room room,
-                       place.department department,
-                       place.employee_position employee_position,
-                       place.employee_name employee_name,
-                       type_place.title type_place_title,
-                       place.description description INTO STRICT record_place FROM place LEFT JOIN type_place ON (place.type_place_id = type_place.id) WHERE place.id = temp_place_id;
-				IF record_place.type_place_title <> status_for_search THEN
+   		FOR hardware IN SELECT * FROM hardwares_for_workplace WHERE(hardware.id::text LIKE id_for_search AND
+                                                                 LOWER(hardware.type) LIKE LOWER(type_for_search) AND
+                                                      LOWER(hardware.characteristics) LIKE LOWER(characteristics_for_search) AND
+                                                         hardware.trebovanie_id::text LIKE trebovanie_id_for_search AND
+                                                         hardware.nomenclature_number LIKE nomenclature_number_for_search)
+        	LOOP
+
+				SELECT movements_hardwares_for_workplace.place_id
+				  INTO id_workplace
+				  FROM movements_hardwares_for_workplace
+				 WHERE movements_hardwares_for_workplace.hardware_id = hardware.id
+			  ORDER BY movements_hardwares_for_workplace.id
+			      DESC LIMIT 1;
+
+				SELECT workplaces.id ,
+                       workplaces.building building,
+                       workplaces.room room,
+                       workplaces.department department,
+                       workplaces.employee_position employee_position,
+                       workplaces.employee_name employee_name,
+                       workplaces.type type_workplace,
+           INTO STRICT workplace
+                  FROM workplaces
+                 WHERE workplaces.id = id_workplace;
+
+				IF hardware.status <> status_for_search THEN
 					CONTINUE;
 				ELSE
-					IF record_place.type_place_title = status_for_search THEN
-						id = record_hardware.id;
-						type = record_hardware.type;
-						characteristics = record_hardware.characteristics;
-						SELECT type_material_values.name INTO type_material_values_name FROM trebovanie_nakladnaya LEFT JOIN type_material_values ON (type_material_values.id = trebovanie_nakladnaya.type_material_values_id) WHERE (trebovanie_nakladnaya.id = record_hardware.trebovanie_nakladnaya_id);
+					IF hardware.status = status_for_search THEN
+						id = hardware.id;
+						type = hardware.type;
+						characteristics = hardware.characteristics;
+						type_material_values.name INTO type_material_values_name FROM trebovanie_nakladnaya LEFT JOIN type_material_values ON (type_material_values.id = trebovanie_nakladnaya.type_material_values_id) WHERE (trebovanie_nakladnaya.id = record_hardware.trebovanie_nakladnaya_id);
 						trebovanie_nakladnaya_id = record_hardware.trebovanie_nakladnaya_id;
 						nomenklatur_number = record_hardware.nomenklatur_number;
 						place_id = record_place.id;
@@ -430,5 +437,67 @@ AS $$
 					END IF;
 				END IF;
         		END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION join_hardwares_for_workplace_and_workplaces()
+RETURNS TABLE(
+    id INTEGER,
+    type TEXT,
+    characteristics TEXT,
+    trebovanie_id INTEGER,
+    type_material_values TEXT,
+    nomenclature_number TEXT,
+    status TEXT,
+    id_workplace INTEGER,
+    building TEXT,
+    room TEXT,
+    department TEXT,
+    employee_position TEXT,
+    employee_name TEXT)
+AS $$
+	DECLARE
+		hardware RECORD;
+		workplace RECORD;
+		id_last_workplace_for_hardware INTEGER;
+	BEGIN
+   		FOR hardware IN SELECT * FROM hardwares_for_workplace
+        	LOOP
+        	    id = hardware.id;
+                type = hardware.type;
+                characteristics = hardware.characteristics;
+                SELECT trebovaniya.type_material_values
+                  INTO type_material_values
+                  FROM trebovaniya
+                 WHERE trebovaniya.id = hardware.trebovanie_id;
+                trebovanie_id = hardware.trebovanie_id;
+                nomenclature_number = hardware.nomenclature_number;
+                status = hardware.status;
+
+				SELECT movements_hardwares_for_workplace.place_id
+				  INTO id_last_workplace_for_hardware
+				  FROM movements_hardwares_for_workplace
+				 WHERE movements_hardwares_for_workplace.hardware_id = hardware.id
+			  ORDER BY movements_hardwares_for_workplace.id;
+
+			    IF NOT FOUND THEN
+			        RETURN next;
+			    END IF;
+
+				SELECT *
+           INTO STRICT workplace
+                  FROM workplaces
+                 WHERE workplaces.id = id_last_workplace_for_hardware;
+
+                id_workplace = workplace.id;
+                building = workplace.building;
+                room = workplace.room;
+                department = workplace.department;
+                employee_position = workplace.employee_position;
+                employee_name = workplace.employee_name;
+                RETURN next;
+        	END LOOP;
    	END;
 $$ LANGUAGE plpgsql;

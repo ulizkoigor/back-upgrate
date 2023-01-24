@@ -1,6 +1,6 @@
 const pool = require('../database/keys')
 
-class metrostockController {
+class hardwareForWorkplaceController {
 
     makeMove = async (req, res) => {
         console.log(req.body)
@@ -18,10 +18,11 @@ class metrostockController {
         res.json()
     }
 
-    load = async (req, res) => {
+    loadFromDB = async (req, res) => {
         const {status_for_search, id_for_search, type_for_search, characteristics_for_search, trebovanie_for_search, nomenclature_number_for_search} = req.query
-        const workplaceHardware = await pool.query(`
-            SELECT  * FROM hardware 
+        const hardwaresForWorkplace = await pool.query(`
+            SELECT  *
+              FROM  join_hardwares_for_workplace_and_workplaces()
              WHERE  (                   status LIKE '${status_for_search}' AND
                                       id::text LIKE '${id_for_search}' AND
                                           type LIKE '${type_for_search}' AND
@@ -31,16 +32,16 @@ class metrostockController {
                     )
           ORDER BY  id
           `)
-        res.json(workplaceHardware.rows)
+        res.json(hardwaresForWorkplace.rows)
     }
 
-    loadGrouped = async (req, res) => {
+    loadFromDBGrouped = async (req, res) => {
         const {status_for_search, type_for_search, characteristics_for_search} = req.query
-        const workplaceHardwareGrouped = await pool.query(`
+        const hardwaresForWorkplaceGrouped = await pool.query(`
             SELECT  type,
                     characteristics,
                     COUNT(*)
-              FROM  hardware
+              FROM  hardwares_for_workplace
              WHERE  (               status LIKE '${status_for_search}' AND
                                       type LIKE '${type_for_search}' AND
                     LOWER(characteristics) LIKE LOWER('%${characteristics_for_search}%')
@@ -48,7 +49,7 @@ class metrostockController {
           GROUP BY  type,
                     characteristics
           `)
-        res.json(workplaceHardwareGrouped.rows)
+        res.json(hardwaresForWorkplaceGrouped.rows)
     }
 
 /*    getHardwareWithDetailInformationList = async (req, res) => {
@@ -151,4 +152,4 @@ class metrostockController {
         res.send("ok")
     }
 }
-module.exports = new metrostockController()
+module.exports = new hardwareForWorkplaceController()
