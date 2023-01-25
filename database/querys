@@ -444,13 +444,15 @@ $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION join_hardwares_for_workplace_and_workplaces()
 RETURNS TABLE(
-    id INTEGER,
-    type TEXT,
+    id_hardware INTEGER,
+    type_hardware TEXT,
     characteristics TEXT,
-    trebovanie_id INTEGER,
-    type_material_values TEXT,
+    id_trebovanie INTEGER,
     nomenclature_number TEXT,
     status TEXT,
+    comment TEXT,
+    type_material_values TEXT,
+    date TIMESTAMP WITH TIME ZONE,
     id_workplace INTEGER,
     building TEXT,
     room TEXT,
@@ -458,46 +460,49 @@ RETURNS TABLE(
     employee_position TEXT,
     employee_name TEXT)
 AS $$
-	DECLARE
+DECLARE
 		hardware RECORD;
 		workplace RECORD;
+		trebovanie RECORD;
 		id_last_workplace_for_hardware INTEGER;
-	BEGIN
-   		FOR hardware IN SELECT * FROM hardwares_for_workplace
-        	LOOP
-        	    id = hardware.id;
-                type = hardware.type;
-                characteristics = hardware.characteristics;
-                SELECT trebovaniya.type_material_values
-                  INTO type_material_values
-                  FROM trebovaniya
-                 WHERE trebovaniya.id = hardware.trebovanie_id;
-                trebovanie_id = hardware.trebovanie_id;
-                nomenclature_number = hardware.nomenclature_number;
-                status = hardware.status;
+BEGIN
+    FOR hardware IN SELECT * FROM hardwares_for_workplace
+    LOOP
+        id_hardware = hardware.id;
+        type_hardware = hardware.type;
+        characteristics = hardware.characteristics;
+        nomenclature_number = hardware.nomenclature_number;
+        status = hardware.status;
+        comment = hardware.comment;
+        id_trebovanie = hardware.trebovanie_id;
+        SELECT * INTO trebovanie FROM trebovaniya WHERE trebovaniya.id = hardware.trebovanie_id;
+        date = trebovanie.date;
+        type_material_values = trebovanie.type_material_values;
 
-				SELECT movements_hardwares_for_workplace.place_id
-				  INTO id_last_workplace_for_hardware
-				  FROM movements_hardwares_for_workplace
-				 WHERE movements_hardwares_for_workplace.hardware_id = hardware.id
-			  ORDER BY movements_hardwares_for_workplace.id;
+        SELECT    movements_hardwares_for_workplace.place_id
+          INTO    id_last_workplace_for_hardware
+          FROM    movements_hardwares_for_workplace
+         WHERE    movements_hardwares_for_workplace.hardware_id = hardware.id
+        ORDER BY  movements_hardwares_for_workplace.id;
 
-			    IF NOT FOUND THEN
-			        RETURN next;
-			    END IF;
-
-				SELECT *
-           INTO STRICT workplace
-                  FROM workplaces
-                 WHERE workplaces.id = id_last_workplace_for_hardware;
-
-                id_workplace = workplace.id;
-                building = workplace.building;
-                room = workplace.room;
-                department = workplace.department;
-                employee_position = workplace.employee_position;
-                employee_name = workplace.employee_name;
-                RETURN next;
-        	END LOOP;
-   	END;
+        IF NOT FOUND THEN
+            id_workplace = NULL;
+            building = '';
+            room = '';
+            department = '';
+            employee_position = '';
+            employee_name = '';
+            RETURN next;
+        ELSE
+            SELECT * INTO workplace FROM workplaces WHERE workplaces.id = id_last_workplace_for_hardware;
+            id_workplace = workplace.id;
+            building = workplace.building;
+            room = workplace.room;
+            department = workplace.department;
+            employee_position = workplace.employee_position;
+            employee_name = workplace.employee_name;
+            RETURN next;
+        END IF;
+    END LOOP;
+END;
 $$ LANGUAGE plpgsql;

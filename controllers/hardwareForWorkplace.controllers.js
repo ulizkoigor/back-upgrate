@@ -19,19 +19,26 @@ class hardwareForWorkplaceController {
     }
 
     loadFromDB = async (req, res) => {
-        const {status_for_search, id_for_search, type_for_search, characteristics_for_search, trebovanie_for_search, nomenclature_number_for_search} = req.query
-        const hardwaresForWorkplace = await pool.query(`
+        console.log(req.query)
+        const hardwaresForWorkplace = await pool.query(`            
             SELECT  *
               FROM  join_hardwares_for_workplace_and_workplaces()
-             WHERE  (                   status LIKE '${status_for_search}' AND
-                                      id::text LIKE '${id_for_search}' AND
-                                          type LIKE '${type_for_search}' AND
-                        LOWER(characteristics) LIKE  LOWER('%${characteristics_for_search}%') AND
-                           trebovanie_id::text LIKE '${trebovanie_for_search}' AND
-                           nomenclature_number LIKE '%${nomenclature_number_for_search}%'
-                    )
-          ORDER BY  id
-          `)
+             WHERE       id_hardware::TEXT LIKE '${req.query.idHardwareForSearch}' AND
+                                    status LIKE '${req.query.statusForSearch}' AND
+                             type_hardware LIKE '${req.query.typeHardwareForSearch}' AND
+                    LOWER(characteristics) LIKE LOWER('%${req.query.characteristicsForSearch}%') AND
+                        id_workplace::TEXT LIKE '${req.query.idWorkplaceForSearch}' AND
+                                  building LIKE '${req.query.buildingForSearch}' AND
+                                      room LIKE '%${req.query.roomForSearch}%' AND
+                                department LIKE '${req.query.departmentForSearch}' AND
+                  LOWER(employee_position) LIKE LOWER('%${req.query.positionForSearch}%') AND
+                      LOWER(employee_name) LIKE LOWER('%${req.query.nameForSearch}%') AND
+                      type_material_values LIKE '${req.query.typeMaterialValuesForSearch}'
+
+
+
+          ORDER BY  id_hardware
+        `)
         res.json(hardwaresForWorkplace.rows)
     }
 
