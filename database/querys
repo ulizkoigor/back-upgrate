@@ -453,7 +453,7 @@ RETURNS TABLE(
     comment TEXT,
     type_material_values TEXT,
     date TIMESTAMP WITH TIME ZONE,
-    id_workplace INTEGER,
+    id_workplace TEXT,
     building TEXT,
     room TEXT,
     department TEXT,
@@ -474,8 +474,8 @@ BEGIN
         nomenclature_number = hardware.nomenclature_number;
         status = hardware.status;
         comment = hardware.comment;
-        id_trebovanie = hardware.trebovanie_id;
-        SELECT * INTO trebovanie FROM trebovaniya WHERE trebovaniya.id = hardware.trebovanie_id;
+        id_trebovanie = hardware.id_trebovanie;
+        SELECT * INTO trebovanie FROM trebovaniya WHERE trebovaniya.id = hardware.id_trebovanie;
         date = trebovanie.date;
         type_material_values = trebovanie.type_material_values;
 
@@ -486,7 +486,7 @@ BEGIN
         ORDER BY  movements_hardwares_for_workplace.id;
 
         IF NOT FOUND THEN
-            id_workplace = NULL;
+            id_workplace = '';
             building = '';
             room = '';
             department = '';
@@ -495,7 +495,7 @@ BEGIN
             RETURN next;
         ELSE
             SELECT * INTO workplace FROM workplaces WHERE workplaces.id = id_last_workplace_for_hardware;
-            id_workplace = workplace.id;
+            id_workplace = workplace.id::TEXT;
             building = workplace.building;
             room = workplace.room;
             department = workplace.department;

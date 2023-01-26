@@ -1,8 +1,47 @@
 const pool = require('../database/keys')
 
 class hardwareForWorkplaceController {
+    loadFromDB = async (req, res) => {
+        const hardwaresForWorkplace = await pool.query(`            
+            SELECT  *
+              FROM  join_hardwares_for_workplace_and_workplaces()
+             WHERE  id_hardware::TEXT LIKE '${req.query.idHardwareForSearch}' AND
+                    status LIKE '${req.query.statusForSearch}' AND
+                    type_hardware LIKE '${req.query.typeHardwareForSearch}' AND
+                    LOWER(characteristics) LIKE LOWER('%${req.query.characteristicsForSearch}%') AND
+                    id_workplace::TEXT LIKE '${req.query.idWorkplaceForSearch}' AND
+                    building LIKE '${req.query.buildingForSearch}' AND
+                    room LIKE '%${req.query.roomForSearch}%' AND
+                    department LIKE '${req.query.departmentForSearch}' AND
+                    LOWER(employee_position) LIKE LOWER('%${req.query.positionForSearch}%') AND
+                    LOWER(employee_name) LIKE LOWER('%${req.query.nameForSearch}%') AND
+                    LOWER(nomenclature_number) LIKE LOWER('%${req.query.nomenclatureNumberForSearch}%') AND
+                    type_material_values LIKE '${req.query.typeMaterialValuesForSearch}' AND
+                    id_trebovanie::TEXT LIKE '${req.query.trebovanieForSearch}'
+          ORDER BY  id_hardware
+        `)
+        res.json(hardwaresForWorkplace.rows)
+    }
 
-    makeMove = async (req, res) => {
+    loadFromDBGrouped = async (req, res) => {
+        const hardwaresForWorkplaceGrouped = await pool.query(`
+            SELECT  hardwares_for_workplace.type type_hardware,
+                    characteristics,
+                    status,
+                    COUNT(*)
+              FROM  hardwares_for_workplace
+             WHERE  (status LIKE '${req.query.statusForSearch}' AND
+                     hardwares_for_workplace.type LIKE '${req.query.typeHardwareForSearch}' AND
+                     LOWER(characteristics) LIKE LOWER('%${req.query.characteristicsForSearch}%')
+                    )
+          GROUP BY  type,
+                    characteristics,
+                    status
+          `)
+        res.json(hardwaresForWorkplaceGrouped.rows)
+    }
+
+/*    makeMove = async (req, res) => {
         console.log(req.body)
 
         const id = await pool.query(`
@@ -16,48 +55,7 @@ class hardwareForWorkplaceController {
         console.log(id.rows[0])
 
         res.json()
-    }
-
-    loadFromDB = async (req, res) => {
-        console.log(req.query)
-        const hardwaresForWorkplace = await pool.query(`            
-            SELECT  *
-              FROM  join_hardwares_for_workplace_and_workplaces()
-             WHERE       id_hardware::TEXT LIKE '${req.query.idHardwareForSearch}' AND
-                                    status LIKE '${req.query.statusForSearch}' AND
-                             type_hardware LIKE '${req.query.typeHardwareForSearch}' AND
-                    LOWER(characteristics) LIKE LOWER('%${req.query.characteristicsForSearch}%') AND
-                        id_workplace::TEXT LIKE '${req.query.idWorkplaceForSearch}' AND
-                                  building LIKE '${req.query.buildingForSearch}' AND
-                                      room LIKE '%${req.query.roomForSearch}%' AND
-                                department LIKE '${req.query.departmentForSearch}' AND
-                  LOWER(employee_position) LIKE LOWER('%${req.query.positionForSearch}%') AND
-                      LOWER(employee_name) LIKE LOWER('%${req.query.nameForSearch}%') AND
-                      type_material_values LIKE '${req.query.typeMaterialValuesForSearch}'
-
-
-
-          ORDER BY  id_hardware
-        `)
-        res.json(hardwaresForWorkplace.rows)
-    }
-
-    loadFromDBGrouped = async (req, res) => {
-        const {status_for_search, type_for_search, characteristics_for_search} = req.query
-        const hardwaresForWorkplaceGrouped = await pool.query(`
-            SELECT  type,
-                    characteristics,
-                    COUNT(*)
-              FROM  hardwares_for_workplace
-             WHERE  (               status LIKE '${status_for_search}' AND
-                                      type LIKE '${type_for_search}' AND
-                    LOWER(characteristics) LIKE LOWER('%${characteristics_for_search}%')
-                    )
-          GROUP BY  type,
-                    characteristics
-          `)
-        res.json(hardwaresForWorkplaceGrouped.rows)
-    }
+    }*/
 
 /*    getHardwareWithDetailInformationList = async (req, res) => {
         const hardwareListWithDetailInformationList = await pool.query(`

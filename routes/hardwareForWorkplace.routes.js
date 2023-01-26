@@ -10,7 +10,7 @@ hardwareForWorkplaceRouter.get('/loadFromDBGrouped', hardwareForWorkplaceControl
 
 hardwareForWorkplaceRouter.get('/getHardwareOfTrebovanieNakladnayaList', hardwareForWorkplaceController.getHardwareOfTrebovanieNakladnayaList)
 
-hardwareForWorkplaceRouter.post('/makeMove', hardwareForWorkplaceController.makeMove)
+/*hardwareForWorkplaceRouter.post('/makeMove', hardwareForWorkplaceController.makeMove)*/
 
 
 hardwareForWorkplaceRouter.get('/getListHardwareForPlace', hardwareForWorkplaceController.getListHardwareForPlace)
