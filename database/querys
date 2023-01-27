@@ -442,7 +442,9 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE FUNCTION join_hardwares_for_workplace_and_workplaces()
+CREATE FUNCTION join_hardwares_for_workplace_and_workplaces(
+    countForSearch INTEGER,
+    statusForSearch TEXT)
 RETURNS TABLE(
     id_hardware INTEGER,
     type_hardware TEXT,
@@ -466,7 +468,7 @@ DECLARE
 		trebovanie RECORD;
 		id_last_workplace_for_hardware INTEGER;
 BEGIN
-    FOR hardware IN SELECT * FROM hardwares_for_workplace
+    FOR hardware IN SELECT * FROM hardwares_for_workplace WHERE (hardwares_for_workplace.status LIKE statusForSearch) ORDER BY hardwares_for_workplace.id LIMIT countForSearch
     LOOP
         id_hardware = hardware.id;
         type_hardware = hardware.type;
@@ -479,13 +481,7 @@ BEGIN
         date = trebovanie.date;
         type_material_values = trebovanie.type_material_values;
 
-        SELECT    movements_hardwares_for_workplace.place_id
-          INTO    id_last_workplace_for_hardware
-          FROM    movements_hardwares_for_workplace
-         WHERE    movements_hardwares_for_workplace.hardware_id = hardware.id
-        ORDER BY  movements_hardwares_for_workplace.id;
-
-        IF NOT FOUND THEN
+        IF hardware.status = 'На складе' THEN
             id_workplace = '';
             building = '';
             room = '';
@@ -494,6 +490,12 @@ BEGIN
             employee_name = '';
             RETURN next;
         ELSE
+            SELECT movements_hardwares_for_workplace.place_id
+            INTO id_last_workplace_for_hardware
+            FROM movements_hardwares_for_workplace
+            WHERE movements_hardwares_for_workplace.hardware_id = hardware.id
+            ORDER BY  movements_hardwares_for_workplace.id;
+
             SELECT * INTO workplace FROM workplaces WHERE workplaces.id = id_last_workplace_for_hardware;
             id_workplace = workplace.id::TEXT;
             building = workplace.building;

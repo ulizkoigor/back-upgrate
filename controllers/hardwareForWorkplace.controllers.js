@@ -4,9 +4,9 @@ class hardwareForWorkplaceController {
     loadFromDB = async (req, res) => {
         const hardwaresForWorkplace = await pool.query(`            
             SELECT  *
-              FROM  join_hardwares_for_workplace_and_workplaces()
+              FROM  join_hardwares_for_workplace_and_workplaces(${req.query.countHardwareForSearch}, '${req.query.statusForSearch}')
              WHERE  id_hardware::TEXT LIKE '${req.query.idHardwareForSearch}' AND
-                    status LIKE '${req.query.statusForSearch}' AND
+
                     type_hardware LIKE '${req.query.typeHardwareForSearch}' AND
                     LOWER(characteristics) LIKE LOWER('%${req.query.characteristicsForSearch}%') AND
                     id_workplace::TEXT LIKE '${req.query.idWorkplaceForSearch}' AND
@@ -18,7 +18,6 @@ class hardwareForWorkplaceController {
                     LOWER(nomenclature_number) LIKE LOWER('%${req.query.nomenclatureNumberForSearch}%') AND
                     type_material_values LIKE '${req.query.typeMaterialValuesForSearch}' AND
                     id_trebovanie::TEXT LIKE '${req.query.trebovanieForSearch}'
-          ORDER BY  id_hardware
         `)
         res.json(hardwaresForWorkplace.rows)
     }
@@ -37,6 +36,7 @@ class hardwareForWorkplaceController {
           GROUP BY  type,
                     characteristics,
                     status
+             LIMIT  ${req.query.countHardwareForSearch}
           `)
         res.json(hardwaresForWorkplaceGrouped.rows)
     }
