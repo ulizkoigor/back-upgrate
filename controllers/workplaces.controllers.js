@@ -21,9 +21,9 @@ class workplacesController {
         res.json(placeOfPrinterList.rows)
     }
 
-    load = async (req, res) => { // подумать о названии loadFormDB
+    loadFromDB = async (req, res) => { // подумать о названии loadFormDB
         const count = await pool.query(`
-            SELECT  * FROM  place
+            SELECT  * FROM  workplaces
              WHERE  (
                                     id::TEXT LIKE '${req.query.idForSearch}' AND
                                         type LIKE '${req.query.typeForSearch}' AND

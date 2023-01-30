@@ -5,6 +5,7 @@ const cors = require('cors')
 const hardwareForWorkplaceRouter = require('./routes/hardwareForWorkplace.routes')
 const consumableForPrintersRouter = require('./routes/consumableForPrinters.routes')
 const workplacesRouter = require('./routes/workplaces.routes')
+const printerplacesRouter = require('./routes/printerplaces.routes')
 const trebovanieNakladnayaRouter = require('./routes/trebovanieNakladnaya.routes')
 
 const config = require("./config")
@@ -23,6 +24,7 @@ app.use(express.urlencoded({extended: true}))
 app.use('/hardwareForWorkplace', hardwareForWorkplaceRouter)
 app.use('/consumableForPrinters/', consumableForPrintersRouter)
 app.use('/workplaces/', workplacesRouter)
+app.use('/printerplaces/', printerplacesRouter)
 app.use('/trebovanieNakladnaya/', trebovanieNakladnayaRouter)
 
 app.get('/getDatabaseName', async (req, res) => {

@@ -2,9 +2,10 @@ const pool = require('../database/keys')
 
 class hardwareForWorkplaceController {
     loadFromDB = async (req, res) => {
+        console.log(req.query)
         const hardwaresForWorkplace = await pool.query(`            
             SELECT  *
-              FROM  join_hardwares_for_workplace_and_workplaces(${req.query.countHardwareForSearch}, '${req.query.statusForSearch}')
+              FROM  join_hardwares_for_workplace_and_workplaces(${req.query.countHardwareForSearch}, '${req.query.statusForSearch}', '${req.query.superTypeForSearch}')
              WHERE  id_hardware::TEXT LIKE '${req.query.idHardwareForSearch}' AND
 
                     type_hardware LIKE '${req.query.typeHardwareForSearch}' AND
@@ -19,6 +20,7 @@ class hardwareForWorkplaceController {
                     type_material_values LIKE '${req.query.typeMaterialValuesForSearch}' AND
                     id_trebovanie::TEXT LIKE '${req.query.trebovanieForSearch}'
         `)
+        console.log(hardwaresForWorkplace.rows)
         res.json(hardwaresForWorkplace.rows)
     }
 
@@ -31,7 +33,8 @@ class hardwareForWorkplaceController {
               FROM  hardwares_for_workplace
              WHERE  (status LIKE '${req.query.statusForSearch}' AND
                      hardwares_for_workplace.type LIKE '${req.query.typeHardwareForSearch}' AND
-                     LOWER(characteristics) LIKE LOWER('%${req.query.characteristicsForSearch}%')
+                     LOWER(characteristics) LIKE LOWER('%${req.query.characteristicsForSearch}%') AND
+                     hardwares_for_workplace.superType LIKE '${req.query.superTypeForSearch}'
                     )
           GROUP BY  type,
                     characteristics,

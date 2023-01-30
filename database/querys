@@ -364,87 +364,11 @@ AS $$
 $$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION select_hardwares_for_workplace(
-    status_for_search TEXT,
-    id_for_search TEXT,
-    type_for_search TEXT,
-    characteristics_for_search TEXT,
-    trebovanie_id_for_search TEXT,
-    type_material_values_for_search TEXT,
-    nomenclature_number_for_search TEXT)
-RETURNS TABLE(
-    id INTEGER,
-    type TEXT,
-    characteristics TEXT,
-    trebovanie_id INTEGER,
-    nomenclature_number TEXT,
-    place_id INTEGER,
-    place_building TEXT,
-    place_room TEXT,
-    place_department TEXT,
-    employee_position TEXT,
-    employee_name TEXT)
-AS $$
-	DECLARE
-		hardware RECORD;
-		workplace RECORD;
-		id_workplace INTEGER;
-	BEGIN
-   		FOR hardware IN SELECT * FROM hardwares_for_workplace WHERE(hardware.id::text LIKE id_for_search AND
-                                                                 LOWER(hardware.type) LIKE LOWER(type_for_search) AND
-                                                      LOWER(hardware.characteristics) LIKE LOWER(characteristics_for_search) AND
-                                                         hardware.trebovanie_id::text LIKE trebovanie_id_for_search AND
-                                                         hardware.nomenclature_number LIKE nomenclature_number_for_search)
-        	LOOP
-
-				SELECT movements_hardwares_for_workplace.place_id
-				  INTO id_workplace
-				  FROM movements_hardwares_for_workplace
-				 WHERE movements_hardwares_for_workplace.hardware_id = hardware.id
-			  ORDER BY movements_hardwares_for_workplace.id
-			      DESC LIMIT 1;
-
-				SELECT workplaces.id ,
-                       workplaces.building building,
-                       workplaces.room room,
-                       workplaces.department department,
-                       workplaces.employee_position employee_position,
-                       workplaces.employee_name employee_name,
-                       workplaces.type type_workplace,
-           INTO STRICT workplace
-                  FROM workplaces
-                 WHERE workplaces.id = id_workplace;
-
-				IF hardware.status <> status_for_search THEN
-					CONTINUE;
-				ELSE
-					IF hardware.status = status_for_search THEN
-						id = hardware.id;
-						type = hardware.type;
-						characteristics = hardware.characteristics;
-						type_material_values.name INTO type_material_values_name FROM trebovanie_nakladnaya LEFT JOIN type_material_values ON (type_material_values.id = trebovanie_nakladnaya.type_material_values_id) WHERE (trebovanie_nakladnaya.id = record_hardware.trebovanie_nakladnaya_id);
-						trebovanie_nakladnaya_id = record_hardware.trebovanie_nakladnaya_id;
-						nomenklatur_number = record_hardware.nomenklatur_number;
-						place_id = record_place.id;
-						place_building = record_place.building;
-						place_room = record_place.room;
-						place_department = record_place.department;
-						employee_position = record_place.employee_position;
-						employee_name = record_place.employee_name;
-						description = record_place.description;
-						type_place_title = record_place.type_place_title;
-             			RETURN next;
-					END IF;
-				END IF;
-        		END LOOP;
-   	END;
-$$ LANGUAGE plpgsql;
-
-
 
 CREATE FUNCTION join_hardwares_for_workplace_and_workplaces(
-    countForSearch INTEGER,
-    statusForSearch TEXT)
+    count_for_search INTEGER,
+    status_for_search TEXT,
+    super_type_for_search TEXT)
 RETURNS TABLE(
     id_hardware INTEGER,
     type_hardware TEXT,
@@ -468,7 +392,7 @@ DECLARE
 		trebovanie RECORD;
 		id_last_workplace_for_hardware INTEGER;
 BEGIN
-    FOR hardware IN SELECT * FROM hardwares_for_workplace WHERE (hardwares_for_workplace.status LIKE statusForSearch) ORDER BY hardwares_for_workplace.id LIMIT countForSearch
+    FOR hardware IN SELECT * FROM hardwares_for_workplace WHERE (hardwares_for_workplace.status LIKE status_for_search AND hardwares_for_workplace.supertype LIKE super_type_for_search) ORDER BY hardwares_for_workplace.id LIMIT count_for_search
     LOOP
         id_hardware = hardware.id;
         type_hardware = hardware.type;
@@ -494,7 +418,7 @@ BEGIN
             INTO id_last_workplace_for_hardware
             FROM movements_hardwares_for_workplace
             WHERE movements_hardwares_for_workplace.hardware_id = hardware.id
-            ORDER BY  movements_hardwares_for_workplace.id;
+            ORDER BY movements_hardwares_for_workplace.id DESC LIMIT 1;
 
             SELECT * INTO workplace FROM workplaces WHERE workplaces.id = id_last_workplace_for_hardware;
             id_workplace = workplace.id::TEXT;
