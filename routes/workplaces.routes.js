@@ -5,6 +5,6 @@ const workplacesController = require('../controllers/workplaces.controllers')
 const workplacesRouter = express.Router()
 
 workplacesRouter.get('/loadFromDB', workplacesController.loadFromDB)
-workplacesRouter.get('/getPlaceOfPrinterList', workplacesController.getPlaceOfPrinterList)
+workplacesRouter.post('/insertIntoDB', workplacesController.insertIntoDB)
 
 module.exports = workplacesRouter

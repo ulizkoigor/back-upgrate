@@ -432,3 +432,20 @@ BEGIN
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION move_printers() RETURNS VOID
+AS $$
+DECLARE
+    hardware RECORD;
+BEGIN
+    FOR hardware IN SELECT * FROM hardware_for_workplaces
+    LOOP
+        IF (hardware.type = 'Принтер' OR hardware.type = 'МФУ') THEN
+            INSERT INTO hardware_for_printerplaces(type, characteristics, id_trebovanie, nomenclature_number, status, comment)
+            VALUES(hardware.type, hardware.characteristics, hardware.id_trebovanie, hardware.nomenclature_number, hardware.status, hardware. comment);
+        END IF;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
