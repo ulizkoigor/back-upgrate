@@ -449,3 +449,222 @@ BEGIN
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION migrate_printerplaces()
+RETURNS TABLE(id_hardware INTEGER,
+              type_hardware TEXT,
+              characteristics TEXT,
+              id_trebovanie INTEGER,
+              id_workplace INTEGER,
+              place_building TEXT,
+              place_room TEXT,
+              place_department TEXT,
+              employee_position TEXT,
+              employee_name TEXT
+              )
+AS $$
+	DECLARE
+		hardware RECORD;
+		workplace RECORD;
+		movement RECORD;
+	BEGIN
+   		FOR hardware IN SELECT * FROM hardware_for_workplaces WHERE((hardware_for_workplaces.type LIKE 'Принтер' OR hardware_for_workplaces.type LIKE 'МФУ') AND (hardware_for_workplaces.status = 'В эксплуатации'))
+        LOOP
+		    SELECT * INTO movement FROM movements_hardwares_for_workplace WHERE movements_hardwares_for_workplace.hardware_id = hardware.id ORDER BY movements_hardwares_for_workplace.id DESC LIMIT 1;
+			SELECT * INTO workplace FROM workplaces WHERE workplaces.id = movement.place_id;
+			id_hardware = hardware.id;
+			type_hardware = hardware.type;
+			characteristics = hardware.characteristics;
+			id_trebovanie = hardware.id_trebovanie;
+			id_workplace = workplace.id;
+			place_building = workplace.building;
+			place_room = workplace.room;
+			place_department = workplace.department;
+			employee_position = workplace.employee_position;
+			employee_name = workplace.employee_name;
+      		RETURN next;
+        END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION move_workplaces_to_printerplaces()
+RETURNS TABLE(id_hardware INTEGER,
+              type_hardware TEXT,
+              characteristics TEXT,
+              id_trebovanie INTEGER,
+              id_workplace INTEGER,
+              place_building TEXT,
+              place_room TEXT,
+              place_department TEXT,
+              employee_position TEXT,
+              employee_name TEXT
+              )
+AS $$
+	DECLARE
+		hardware RECORD;
+		workplace RECORD;
+		movement RECORD;
+		me BOOLEAN;
+	BEGIN
+   		FOR hardware IN SELECT * FROM hardware_for_workplaces WHERE((hardware_for_workplaces.type LIKE 'Принтер' OR hardware_for_workplaces.type LIKE 'МФУ') AND (hardware_for_workplaces.status = 'В эксплуатации'))
+        LOOP
+		    SELECT * INTO movement FROM movements_hardwares_for_workplace WHERE movements_hardwares_for_workplace.hardware_id = hardware.id ORDER BY movements_hardwares_for_workplace.id DESC LIMIT 1;
+			SELECT * INTO workplace FROM workplaces WHERE workplaces.id = movement.place_id;
+			id_hardware = hardware.id;
+			type_hardware = hardware.type;
+			characteristics = hardware.characteristics;
+			id_trebovanie = hardware.id_trebovanie;
+			id_workplace = workplace.id;
+			place_building = workplace.building;
+			place_room = workplace.room;
+			place_department = workplace.department;
+			employee_position = workplace.employee_position;
+			employee_name = workplace.employee_name;
+			IF (employee_name = '' AND employee_position = '') THEN
+			    me = TRUE;
+			ELSE
+			    me = FALSE;
+			END IF;
+			INSERT INTO printerplaces (building,
+			                           room,
+			                           department,
+			                           multiple_employees,
+			                           employee_name,
+			                           employee_position) VALUES(place_building,
+			                                                     place_room,
+                                                                 place_department,
+                                                                 me,
+                                                                 employee_name,
+                                                                 employee_position);
+      		RETURN next;
+        END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION move_printers_to_printerplaces()
+RETURNS TABLE(id_hardware INTEGER,
+              type_hardware TEXT,
+              characteristics TEXT,
+              id_trebovanie INTEGER,
+              id_workplace INTEGER,
+              place_building TEXT,
+              place_room TEXT,
+              place_department TEXT,
+              employee_position TEXT,
+              employee_name TEXT
+              )
+AS $$
+	DECLARE
+		hardware RECORD;
+		workplace RECORD;
+		movement RECORD;
+		printer RECORD;
+	BEGIN
+   		FOR hardware IN SELECT * FROM hardware_for_workplaces WHERE((hardware_for_workplaces.type LIKE 'Принтер' OR hardware_for_workplaces.type LIKE 'МФУ') AND (hardware_for_workplaces.status = 'В эксплуатации'))
+        LOOP
+		    SELECT * INTO movement FROM movements_hardwares_for_workplace WHERE movements_hardwares_for_workplace.hardware_id = hardware.id ORDER BY movements_hardwares_for_workplace.id DESC LIMIT 1;
+			SELECT * INTO workplace FROM workplaces WHERE workplaces.id = movement.place_id;
+			id_hardware = hardware.id;
+			type_hardware = hardware.type;
+			characteristics = hardware.characteristics;
+			id_trebovanie = hardware.id_trebovanie;
+			id_workplace = workplace.id;
+			place_building = workplace.building;
+			place_room = workplace.room;
+			place_department = workplace.department;
+			employee_position = workplace.employee_position;
+			employee_name = workplace.employee_name;
+            SELECT * INTO printer FROM hardware_for_printerplaces WHERE (hardware_for_printerplaces.type = hardware.type AND
+                                                                    hardware_for_printerplaces.characteristics = hardware.characteristics AND
+                                                                    hardware_for_printerplaces.id_trebovanie = hardware.id_trebovanie AND
+                                                                    hardware_for_printerplaces.status = 'В эксплуатации')
+            LIMIT 1;
+			UPDATE printerplaces SET printer = PRINTER.id WHERE (printerplaces.building = workplace.building AND
+			                                                     printerplaces.room = workplace.room AND
+			                                                     printerplaces.department = workplace.department AND
+			                                                     printerplaces.employee_name = workplace.employee_name AND
+			                                                     printerplaces.employee_position = workplace.employee_position);
+
+      		RETURN next;
+        END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION check_migrate_printers()
+RETURNS TABLE(
+              type_hardware TEXT,
+              type_printer TEXT,
+              characteristics TEXT,
+              characteristics_printer TEXT,
+              id_trebovanie INTEGER,
+              id_trebovanie_printer TEXT,
+              place_building TEXT,
+              printerplace_building TEXT,
+              place_room TEXT,
+              printerplace_room TEXT,
+              place_department TEXT,
+              printerplace_department TEXT,
+              employee_position TEXT,
+              printerplace_employee_position TEXT,
+              employee_name TEXT,
+              printerplace_employee_name TEXT,
+              checkk BOOLEAN
+              )
+AS $$
+	DECLARE
+		hardware RECORD;
+		workplace RECORD;
+		movement RECORD;
+		printerplace RECORD;
+	BEGIN
+   		FOR hardware IN SELECT * FROM hardware_for_workplaces WHERE((hardware_for_workplaces.type LIKE 'Принтер' OR hardware_for_workplaces.type LIKE 'МФУ') AND (hardware_for_workplaces.status = 'В эксплуатации'))
+        LOOP
+		    SELECT * INTO movement FROM movements_hardwares_for_workplace WHERE movements_hardwares_for_workplace.hardware_id = hardware.id ORDER BY movements_hardwares_for_workplace.id DESC LIMIT 1;
+			SELECT * INTO workplace FROM workplaces WHERE workplaces.id = movement.place_id;
+			type_hardware = hardware.type;
+			characteristics = hardware.characteristics;
+			id_trebovanie = hardware.id_trebovanie;
+			place_building = workplace.building;
+			place_room = workplace.room;
+			place_department = workplace.department;
+			employee_position = workplace.employee_position;
+			employee_name = workplace.employee_name;
+            SELECT * INTO printerplace FROM printerplaces LEFT JOIN hardware_for_printerplaces ON (printerplaces.printer = hardware_for_printerplaces.id) WHERE(
+                printerplaces.building = workplace.building AND
+                printerplaces.room = workplace.room AND
+                printerplaces.department = workplace.department AND
+                printerplaces.employee_position = workplace.employee_position AND
+                printerplaces.employee_name = workplace.employee_name);
+                type_printer = printerplace.type;
+                characteristics_printer = printerplace.characteristics;
+                id_trebovanie_printer = printerplace.id_trebovanie;
+                printerplace_building = printerplace.building;
+                printerplace_room = printerplace.room;
+                printerplace_department = printerplace.department;
+                printerplace_employee_position = printerplace.employee_position;
+                printerplace_employee_name = printerplace.employee_name;
+
+                IF (type_hardware = type_printer AND
+                    characteristics = characteristics_printer AND
+                    id_trebovanie = id_trebovanie_printer:INTEGER AND
+                    place_building = printerplace_building AND
+                    place_room = printerplace_room AND
+                    place_department = printerplace_department AND
+                    employee_position = printerplace_employee_position AND
+                    employee_name = printerplace_employee_name) THEN
+                        checkk = true;
+                ELSE
+                    checkk = false;
+                END IF;
+      		RETURN next;
+        END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
