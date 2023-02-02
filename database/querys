@@ -583,8 +583,10 @@ AS $$
             SELECT * INTO printer FROM hardware_for_printerplaces WHERE (hardware_for_printerplaces.type = hardware.type AND
                                                                     hardware_for_printerplaces.characteristics = hardware.characteristics AND
                                                                     hardware_for_printerplaces.id_trebovanie = hardware.id_trebovanie AND
-                                                                    hardware_for_printerplaces.status = 'В эксплуатации')
+                                                                    hardware_for_printerplaces.status = 'В эксплуатации' AND
+                                                                    hardware_for_printerplaces.nelzya = false)
             LIMIT 1;
+            UPDATE hardware_for_printerplaces SET nelzya = true WHERE id = printer.id;
 			UPDATE printerplaces SET printer = PRINTER.id WHERE (printerplaces.building = workplace.building AND
 			                                                     printerplaces.room = workplace.room AND
 			                                                     printerplaces.department = workplace.department AND
@@ -665,6 +667,21 @@ AS $$
                     checkk = false;
                 END IF;
       		RETURN next;
+        END LOOP;
+   	END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION fill_id_printer_place_in_hardware_printer_place_table()
+RETURNS VOID
+AS $$
+	DECLARE
+        printer_place RECORD;
+	BEGIN
+   		FOR printer_place IN SELECT * FROM printer_places
+        LOOP
+            UPDATE hardware_printer_place SET id_printer_place = printer_place.id WHERE hardware_printer_place.id = printer_place.printer;
         END LOOP;
    	END;
 $$ LANGUAGE plpgsql;
