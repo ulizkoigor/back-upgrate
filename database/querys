@@ -688,7 +688,13 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE FUNCTION merge_tables_printer_hardware_and_printer_places()
+CREATE FUNCTION merge_tables_printer_hardware_and_printer_place(status_hardware_for_search TEXT,
+                                                                id_hardware_for_search TEXT,
+                                                                type_hardware_for_search TEXT,
+                                                                characteristics_hardware_for_search TEXT,
+                                                                nomenclature_number_for_search TEXT,
+                                                                id_trebovaniya_for_search TEXT,
+                                                                id_printer_place_for_search TEXT)
 RETURNS TABLE(status_hardware TEXT,
               id_hardware INTEGER,
               type_hardware TEXT,
@@ -709,7 +715,14 @@ DECLARE
     printer_place_one RECORD;
     trebovaniya_one RECORD;
 BEGIN
-    FOR printer_hardware_one IN SELECT * FROM printer_hardware
+    FOR printer_hardware_one IN SELECT * FROM printer_hardware WHERE printer_hardware.status LIKE status_hardware_for_search AND
+                                                                     printer_hardware.id::TEXT LIKE id_hardware_for_search AND
+                                                                     printer_hardware.type LIKE type_hardware_for_search AND
+                                                                     LOWER(printer_hardware.characteristics) LIKE LOWER(characteristics_hardware_for_search) AND
+                                                                     LOWER(printer_hardware.nomenclature_number) LIKE LOWER(nomenclature_number_for_search) AND
+                                                                     printer_hardware.id_trebovaniya::TEXT LIKE id_trebovaniya_for_search AND
+                                                                     printer_hardware.id_printer_place::TEXT LIKE id_printer_place_for_search
+
     LOOP
         status_hardware = printer_hardware_one.status;
         id_hardware = printer_hardware_one.id;
