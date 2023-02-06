@@ -5,6 +5,6 @@ const printerPlacesController = require('../controllers/printerPlaces.controller
 const printerPlacesRouter = express.Router()
 
 printerPlacesRouter.get('/loadFromDB', printerPlacesController.loadFromDB)
-printerPlacesRouter.get('/loadHardwareForPrinterPlacesFromDB', printerPlacesController.loadHardwareForPrinterPlacesFromDB)
+printerPlacesRouter.get('/loadPrinterHardwareFromDB', printerPlacesController.loadPrinterHardwareFromDB)
 
 module.exports = printerPlacesRouter

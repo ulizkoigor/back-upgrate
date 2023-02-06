@@ -685,3 +685,59 @@ AS $$
         END LOOP;
    	END;
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION merge_tables_printer_hardware_and_printer_places()
+RETURNS TABLE(status_hardware TEXT,
+              id_hardware INTEGER,
+              type_hardware TEXT,
+              characteristics_hardware TEXT,
+              nomenclature_number TEXT,
+              id_trebovaniya INTEGER,
+              date TIMESTAMP WITH TIME ZONE,
+              id_printer_place TEXT,
+              building TEXT,
+              room TEXT,
+              department TEXT,
+              employee_position TEXT,
+              employee_name TEXT,
+              multi_users TEXT)
+AS $$
+DECLARE
+    printer_hardware_one RECORD;
+    printer_place_one RECORD;
+    trebovaniya_one RECORD;
+BEGIN
+    FOR printer_hardware_one IN SELECT * FROM printer_hardware
+    LOOP
+        status_hardware = printer_hardware_one.status;
+        id_hardware = printer_hardware_one.id;
+        type_hardware = printer_hardware_one.type;
+        characteristics_hardware = printer_hardware_one.characteristics;
+        nomenclature_number = printer_hardware_one.nomenclature_number;
+        SELECT * INTO trebovaniya_one FROM trebovaniya WHERE trebovaniya.id = printer_hardware_one.id_trebovaniya;
+        id_trebovaniya = trebovaniya_one.id;
+        date = trebovaniya_one.date;
+        IF printer_hardware_one.id_printer_place IS NULL THEN
+            id_printer_place = '';
+            building = '';
+            room = '';
+            department = '';
+            employee_position = '';
+            employee_name = '';
+            multi_users = '';
+        ELSE
+            SELECT * INTO printer_place_one FROM printer_place WHERE printer_place.id = printer_hardware_one.id_printer_place;
+            id_printer_place = printer_place_one.id;
+            building = printer_place_one.building;
+            room = printer_place_one.room;
+            department = printer_place_one.department;
+            employee_position = printer_place_one.employee_position;
+            employee_name = printer_place_one.employee_name;
+            multi_users = printer_place_one.multi_users;
+        END IF;
+        RETURN NEXT;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
