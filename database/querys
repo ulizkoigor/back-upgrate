@@ -688,46 +688,47 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE FUNCTION merge_tables_printer_hardware_and_printer_place(status_hardware_for_search TEXT,
-                                                                id_hardware_for_search TEXT,
-                                                                type_hardware_for_search TEXT,
-                                                                characteristics_hardware_for_search TEXT,
-                                                                nomenclature_number_for_search TEXT,
-                                                                id_trebovaniya_for_search TEXT,
-                                                                id_printer_place_for_search TEXT)
-RETURNS TABLE(status_hardware TEXT,
-              id_hardware INTEGER,
-              type_hardware TEXT,
-              characteristics_hardware TEXT,
-              nomenclature_number TEXT,
-              id_trebovaniya INTEGER,
-              date TIMESTAMP WITH TIME ZONE,
-              id_printer_place TEXT,
-              building TEXT,
-              room TEXT,
-              department TEXT,
-              employee_position TEXT,
-              employee_name TEXT,
-              multi_users TEXT)
+CREATE FUNCTION merge_tables_printer_hardware_and_printer_place(
+    status_printer_hardware_for_search TEXT,
+    id_printer_hardware_for_search TEXT,
+    type_printer_hardware_for_search TEXT,
+    characteristics_printer_hardware_for_search TEXT,
+    nomenclature_number_for_search TEXT,
+    id_trebovaniya_for_search TEXT)
+RETURNS TABLE(
+    status_printer_hardware TEXT,
+    id_printer_hardware INTEGER,
+    type_printer_hardware TEXT,
+    characteristics_printer_hardware TEXT,
+    nomenclature_number TEXT,
+    id_trebovaniya INTEGER,
+    date TIMESTAMP WITH TIME ZONE,
+    id_printer_place TEXT,
+    building TEXT,
+    room TEXT,
+    department TEXT,
+    employee_position TEXT,
+    employee_name TEXT,
+    multi_users TEXT)
 AS $$
 DECLARE
     printer_hardware_one RECORD;
     printer_place_one RECORD;
     trebovaniya_one RECORD;
 BEGIN
-    FOR printer_hardware_one IN SELECT * FROM printer_hardware WHERE printer_hardware.status LIKE status_hardware_for_search AND
-                                                                     printer_hardware.id::TEXT LIKE id_hardware_for_search AND
-                                                                     printer_hardware.type LIKE type_hardware_for_search AND
-                                                                     LOWER(printer_hardware.characteristics) LIKE LOWER(characteristics_hardware_for_search) AND
-                                                                     LOWER(printer_hardware.nomenclature_number) LIKE LOWER(nomenclature_number_for_search) AND
-                                                                     printer_hardware.id_trebovaniya::TEXT LIKE id_trebovaniya_for_search AND
-                                                                     printer_hardware.id_printer_place::TEXT LIKE id_printer_place_for_search
-
+    FOR printer_hardware_one IN
+        SELECT * FROM printer_hardware WHERE
+            printer_hardware.status LIKE status_printer_hardware_for_search AND
+            printer_hardware.id::TEXT LIKE id_printer_hardware_for_search AND
+            printer_hardware.type LIKE type_printer_hardware_for_search AND
+            LOWER(printer_hardware.characteristics) LIKE LOWER(characteristics_printer_hardware_for_search) AND
+            LOWER(printer_hardware.nomenclature_number) LIKE LOWER(nomenclature_number_for_search) AND
+            printer_hardware.id_trebovaniya::TEXT LIKE id_trebovaniya_for_search
     LOOP
-        status_hardware = printer_hardware_one.status;
-        id_hardware = printer_hardware_one.id;
-        type_hardware = printer_hardware_one.type;
-        characteristics_hardware = printer_hardware_one.characteristics;
+        status_printer_hardware = printer_hardware_one.status;
+        id_printer_hardware = printer_hardware_one.id;
+        type_printer_hardware = printer_hardware_one.type;
+        characteristics_printer_hardware = printer_hardware_one.characteristics;
         nomenclature_number = printer_hardware_one.nomenclature_number;
         SELECT * INTO trebovaniya_one FROM trebovaniya WHERE trebovaniya.id = printer_hardware_one.id_trebovaniya;
         id_trebovaniya = trebovaniya_one.id;
@@ -749,6 +750,67 @@ BEGIN
             employee_position = printer_place_one.employee_position;
             employee_name = printer_place_one.employee_name;
             multi_users = printer_place_one.multi_users;
+        END IF;
+        RETURN NEXT;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION merge_tables_printer_consumable_and_trebovaniya(
+    status_printer_consumable_for_search TEXT,
+    id_printer_consumable_for_search TEXT,
+    type_printer_consumable_for_search TEXT,
+    characteristics_printer_consumable_for_search TEXT,
+    nomenclature_number_for_search TEXT,
+    id_trebovaniya_for_search TEXT)
+RETURNS TABLE(
+    status_printer_consumable TEXT,
+    id_printer_consumable INTEGER,
+    type_printer_consumable TEXT,
+    characteristics_printer_consumable TEXT,
+    nomenclature_number TEXT,
+    id_trebovaniya INTEGER,
+    date TIMESTAMP WITH TIME ZONE)
+AS $$
+DECLARE
+    printer_consumable_one RECORD;
+    trebovaniya_one RECORD;
+BEGIN
+    FOR printer_consumable_one IN
+        SELECT * FROM printer_consumable
+        WHERE printer_consumable.status LIKE status_printer_consumable_for_search AND
+              printer_consumable.id::TEXT LIKE id_printer_consumable_for_search AND
+              printer_consumable.type LIKE type_printer_consumable_for_search AND
+              LOWER(printer_consumable.characteristics) LIKE LOWER(characteristics_printer_consumable_for_search) AND
+              LOWER(printer_consumable.nomenclature_number) LIKE LOWER(nomenclature_number_for_search) AND
+              printer_consumable.id_trebovaniya::TEXT LIKE id_trebovaniya_for_search
+    LOOP
+        status_printer_consumable = printer_consumable_one.status;
+        id_printer_consumable = printer_consumable_one.id;
+        type_printer_consumable = printer_consumable_one.type;
+        characteristics_printer_consumable = printer_consumable_one.characteristics;
+        nomenclature_number = printer_consumable_one.nomenclature_number;
+        SELECT * INTO trebovaniya_one FROM trebovaniya WHERE trebovaniya.id = printer_consumable_one.id_trebovaniya;
+        id_trebovaniya = trebovaniya_one.id;
+        date = trebovaniya_one.date;
+        IF printer_consumable_one.id_printer_hardware IS NULL THEN
+            id_printer_hardware = '';
+            type_printer_hardware = '';
+            characteristics_printer_hardware = '';
+            id_printer_place = '';
+            building = '';
+            room = '';
+        ELSE
+            SELECT * INTO printer_hardware_one FROM printer_hardware WHERE printer_hardware.id = printer_consumable_one.id_printer_hardware;
+            id_printer_hardware = printer_hardware_one.id;
+            type_printer_hardware = printer_hardware_one.type;
+            characteristics_printer_hardware = printer_hardware_one.characteristics;
+            SELECT * INTO printer_place_one FROM printer_place WHERE printer_place.id = printer_hardware_one.id_printer_place;
+            id_printer_place = printer_place_one.id;
+            building = printer_place_one.building;
+            room = printer_place_one.room;
         END IF;
         RETURN NEXT;
     END LOOP;
