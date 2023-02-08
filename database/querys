@@ -816,3 +816,47 @@ BEGIN
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION make_move_printer_consumable(
+    type_printer_consumable_for_add TEXT,
+    characteristics_printer_consumable_for_add TEXT,
+    date_for_add TIMESTAMP WITH TIME ZONE,
+    id_printer_place_for_move_operation INTEGER)
+RETURNS VOID
+AS $$
+DECLARE
+    printer_consumable_for_move_operation RECORD;
+    printer_place_for_move_operation RECORD;
+BEGIN
+    SELECT * INTO printer_consumable_for_move_operation FROM printer_consumable WHERE
+        printer_consumable.status LIKE 'На складе' AND
+        printer_consumable.type LIKE type_printer_consumable_for_add AND
+        printer_consumable.characteristics LIKE characteristics_printer_consumable_for_add
+    LIMIT 1;
+
+    SELECT * INTO printer_place_for_move_operation FROM printer_place WHERE printer_place.id = id_printer_place_for_move_operation;
+
+    INSERT INTO printer_consumable_movement(
+        id_printer_consumable,
+        id_printer_place,
+        building,
+        room,
+        department,
+        employee_position,
+        employee_name,
+        id_printer_hardware)
+    VALUES(
+        printer_consumable_for_move_operation.id,
+        printer_place_for_move_operation.id,
+        printer_place_for_move_operation.building,
+        printer_place_for_move_operation.room,
+        printer_place_for_move_operation.department,
+        printer_place_for_move_operation.employee_position,
+        printer_place_for_move_operation.employee_name,
+        printer_place_for_move_operation.id_printer_hardware);
+
+    UPDATE printer_consumable SET status = 'В эксплуатации' WHERE id = printer_consumable_for_move_operation.id;
+END;
+$$ LANGUAGE plpgsql;

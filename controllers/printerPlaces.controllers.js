@@ -85,7 +85,6 @@ class printerPlacesController {
     }
 
     loadPrinterConsumableFromDB = async (req, res) => { // подумать о названии loadFormDB
-        console.log(req.query)
         await pool.query(`
             SELECT  printer_consumable.status status_printer_consumable,
                     printer_consumable.id id_printer_consumable,
@@ -113,6 +112,8 @@ class printerPlacesController {
             LIMIT ${req.query.countForSearch}`)
             .then((result) => {
                 console.log(result.rows)
+                console.log(result.rows.length)
+                console.log(req.query)
                 res.json(result.rows)
             }).catch((error) => {
                 console.log(`${error}`)
@@ -134,10 +135,26 @@ class printerPlacesController {
                           LIMIT  ${req.query.countForSearch}`)
             .then((result) => {
                 console.log(result.rows)
+                console.log(result.rows.length)
                 res.json(result.rows)
             }).catch((error) => {
                 console.log(`${error}`)
             })
+    }
+
+    insertMoveConsumable = async (req, res) => {
+        console.log(req.body)
+        await pool.query(`
+            SELECT make_move_printer_consumable(
+                '${req.body.typePrinterConsumableForMoveOperation}',
+                '${req.body.characteristicsPrinterConsumableForMoveOperation}',
+                '${req.body.dateForMoveOperation}',
+                 ${req.body.idPrinterPlaceForMoveOperation})
+        `).then(() => {
+            res.send()
+        }).catch((error) => {
+            console.log(`${error}`)
+        })
     }
 }
 
