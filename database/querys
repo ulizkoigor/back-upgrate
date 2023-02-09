@@ -822,7 +822,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION make_move_printer_consumable(
     type_printer_consumable_for_add TEXT,
     characteristics_printer_consumable_for_add TEXT,
-    date_for_add TIMESTAMP WITH TIME ZONE,
+    date_for_move_operation TIMESTAMP WITH TIME ZONE,
     id_printer_place_for_move_operation INTEGER)
 RETURNS VOID
 AS $$
@@ -840,6 +840,7 @@ BEGIN
 
     INSERT INTO printer_consumable_movement(
         id_printer_consumable,
+        date,
         id_printer_place,
         building,
         room,
@@ -849,6 +850,7 @@ BEGIN
         id_printer_hardware)
     VALUES(
         printer_consumable_for_move_operation.id,
+        date_for_move_operation,
         printer_place_for_move_operation.id,
         printer_place_for_move_operation.building,
         printer_place_for_move_operation.room,

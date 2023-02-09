@@ -156,6 +156,54 @@ class printerPlacesController {
             console.log(`${error}`)
         })
     }
+
+    printerConsumableMovement_SELECT = async (req, res) => {
+        console.log(req.query)
+        await pool.query(`
+            SELECT printer_consumable_movement.id id_printer_consumable_movement,
+                   printer_consumable_movement.date date_movement,
+                   printer_consumable.id id_printer_consumable,
+                   printer_consumable.type type_printer_consumable,
+                   printer_consumable.characteristics characteristics_printer_consumable,
+                   printer_hardware.id id_printer_hardware,
+                   printer_hardware.type type_printer_hardware,
+                   printer_hardware.characteristics characteristics_printer_hardware,
+                   printer_consumable_movement.id_printer_place id_printer_place,
+                   printer_consumable_movement.building building,
+                   printer_consumable_movement.room room,
+                   printer_consumable_movement.department department,
+                   printer_consumable_movement.employee_position employee_position,
+                   printer_consumable_movement.employee_name employee_name,
+                   printer_place.multi_users multi_users
+            FROM printer_consumable_movement
+            LEFT JOIN printer_consumable ON printer_consumable.id = printer_consumable_movement.id_printer_consumable
+            LEFT JOIN printer_hardware ON printer_hardware.id = printer_consumable_movement.id_printer_hardware
+            LEFT JOIN printer_place ON printer_place.id = printer_consumable_movement.id_printer_place
+            WHERE printer_consumable_movement.id::TEXT LIKE '${req.query.idPrinterConsumableMovement}' AND
+                 (printer_consumable_movement.date >= '${req.query.dateStartPeriodForSearch}' AND printer_consumable_movement.date <= '${req.query.dateEndPeriodForSearch}') AND
+                  printer_consumable.id::TEXT LIKE '${req.query.idPrinterConsumable}' AND
+                  printer_consumable.type LIKE '${req.query.typePrinterConsumable}' AND
+                  LOWER(printer_consumable.characteristics) LIKE LOWER('%${req.query.characteristicsPrinterConsumable}%') AND
+                  printer_hardware.id::TEXT LIKE '${req.query.idPrinterHardware}' AND 
+                  printer_hardware.type LIKE '${req.query.typePrinterHardware}' AND
+                  LOWER(printer_hardware.characteristics) LIKE LOWER('%${req.query.characteristicsPrinterHardware}%') AND
+                  printer_consumable_movement.id_printer_place::TEXT LIKE '${req.query.idPrinterPlace}' AND
+                  printer_consumable_movement.building LIKE '${req.query.building}' AND
+                  printer_consumable_movement.room LIKE '%${req.query.room}%' AND
+                  printer_consumable_movement.department LIKE '${req.query.department}' AND
+                  LOWER(printer_consumable_movement.employee_position) LIKE LOWER('%${req.query.employeePosition}%') AND
+                  LOWER(printer_consumable_movement.employee_name) LIKE LOWER('%${req.query.employeeName}%') AND
+                  printer_place.multi_users::TEXT LIKE '${req.query.multiUsers}'                 
+            ORDER BY printer_consumable_movement.date
+            DESC
+            LIMIT ${req.query.count}
+        `).then((result) => {
+            console.log(result.rows)
+            res.send(result.rows)
+        }).catch((error) => {
+            console.log(`${error}`)
+        })
+    }
 }
 
 module.exports = new printerPlacesController()

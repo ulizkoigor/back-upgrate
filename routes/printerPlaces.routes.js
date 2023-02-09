@@ -10,5 +10,6 @@ printerPlacesRouter.get('/loadPrinterHardwareFromDBGrouped', printerPlacesContro
 printerPlacesRouter.get('/loadPrinterConsumableFromDB', printerPlacesController.loadPrinterConsumableFromDB)
 printerPlacesRouter.get('/loadPrinterConsumableFromDBGrouped', printerPlacesController.loadPrinterConsumableFromDBGrouped)
 printerPlacesRouter.post('/insertMoveConsumable', printerPlacesController.insertMoveConsumable)
+printerPlacesRouter.get('/printerConsumableMovement_SELECT', printerPlacesController.printerConsumableMovement_SELECT)
 
 module.exports = printerPlacesRouter
