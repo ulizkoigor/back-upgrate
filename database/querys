@@ -824,11 +824,12 @@ CREATE FUNCTION make_move_printer_consumable(
     characteristics_printer_consumable_for_add TEXT,
     date_for_move_operation TIMESTAMP WITH TIME ZONE,
     id_printer_place_for_move_operation INTEGER)
-RETURNS VOID
+RETURNS INTEGER
 AS $$
 DECLARE
     printer_consumable_for_move_operation RECORD;
     printer_place_for_move_operation RECORD;
+    new_id_printer_consumable_movement INTEGER;
 BEGIN
     SELECT * INTO printer_consumable_for_move_operation FROM printer_consumable WHERE
         printer_consumable.status LIKE 'На складе' AND
@@ -857,8 +858,23 @@ BEGIN
         printer_place_for_move_operation.department,
         printer_place_for_move_operation.employee_position,
         printer_place_for_move_operation.employee_name,
-        printer_place_for_move_operation.id_printer_hardware);
+        printer_place_for_move_operation.id_printer_hardware)
+    RETURNING id INTO new_id_printer_consumable_movement;
 
     UPDATE printer_consumable SET status = 'В эксплуатации' WHERE id = printer_consumable_for_move_operation.id;
+    RETURN new_id_printer_consumable_movement;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION return_to_stock_and_delete_movement(
+    id_printer_consumable INTEGER,
+    id_printer_consumable_movement INTEGER)
+RETURNS VOID
+AS $$
+BEGIN
+    UPDATE printer_consumable SET status = 'На складе' WHERE id = id_printer_consumable;
+    DELETE FROM printer_consumable_movement WHERE id = id_printer_consumable_movement;
 END;
 $$ LANGUAGE plpgsql;

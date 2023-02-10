@@ -52,7 +52,6 @@ class printerPlacesController {
                                    printer_hardware.characteristics                                   
                           LIMIT  ${req.query.countForSearch}`)
             .then((result) => {
-                console.log(result.rows)
                 res.json(result.rows)
             }).catch((error) => {
                 console.log(`${error}`)
@@ -77,7 +76,6 @@ class printerPlacesController {
                                  multi_users::TEXT LIKE '${req.query.multiUsersForSearch}'
                           ORDER BY id_printer_hardware DESC`)
             .then((result) => {
-                console.log(result.rows)
             res.json(result.rows)
         }).catch((error) => {
             console.log(`${error}`)
@@ -111,9 +109,6 @@ class printerPlacesController {
             ORDER BY id_printer_consumable DESC
             LIMIT ${req.query.countForSearch}`)
             .then((result) => {
-                console.log(result.rows)
-                console.log(result.rows.length)
-                console.log(req.query)
                 res.json(result.rows)
             }).catch((error) => {
                 console.log(`${error}`)
@@ -134,8 +129,6 @@ class printerPlacesController {
                                    printer_consumable.characteristics                                   
                           LIMIT  ${req.query.countForSearch}`)
             .then((result) => {
-                console.log(result.rows)
-                console.log(result.rows.length)
                 res.json(result.rows)
             }).catch((error) => {
                 console.log(`${error}`)
@@ -143,22 +136,23 @@ class printerPlacesController {
     }
 
     insertMoveConsumable = async (req, res) => {
-        console.log(req.body)
         await pool.query(`
             SELECT make_move_printer_consumable(
                 '${req.body.typePrinterConsumableForMoveOperation}',
                 '${req.body.characteristicsPrinterConsumableForMoveOperation}',
                 '${req.body.dateForMoveOperation}',
                  ${req.body.idPrinterPlaceForMoveOperation})
-        `).then(() => {
-            res.send()
+        `).then((result) => {
+            let newIdPrinterConsumableMovement = result.rows[0].make_move_printer_consumable
+            console.log(result.rows)
+            console.log(result.rows[0])
+            res.send(result.rows[0])
         }).catch((error) => {
             console.log(`${error}`)
         })
     }
 
     printerConsumableMovement_SELECT = async (req, res) => {
-        console.log(req.query)
         await pool.query(`
             SELECT printer_consumable_movement.id id_printer_consumable_movement,
                    printer_consumable_movement.date date_movement,
@@ -196,10 +190,17 @@ class printerPlacesController {
                   printer_place.multi_users::TEXT LIKE '${req.query.multiUsers}'                 
             ORDER BY printer_consumable_movement.date
             DESC
-            LIMIT ${req.query.count}
         `).then((result) => {
-            console.log(result.rows)
             res.send(result.rows)
+        }).catch((error) => {
+            console.log(`${error}`)
+        })
+    }
+
+    RETURN_TO_STOCK_printerConsumable = async (req, res) => {
+        console.log(req.body)
+        await pool.query(`SELECT return_to_stock_and_delete_movement(${req.body.idPrinterConsumable}, ${req.body.idPrinterConsumableMovement})`).then(() => {
+            res.send()
         }).catch((error) => {
             console.log(`${error}`)
         })
