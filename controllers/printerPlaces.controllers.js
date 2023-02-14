@@ -153,6 +153,7 @@ class printerPlacesController {
     }
 
     printerConsumableMovement_SELECT = async (req, res) => {
+        console.log(req.query)
         await pool.query(`
             SELECT printer_consumable_movement.id id_printer_consumable_movement,
                    printer_consumable_movement.date date_movement,
@@ -191,7 +192,8 @@ class printerPlacesController {
             ORDER BY printer_consumable_movement.date
             DESC
         `).then((result) => {
-            res.send(result.rows)
+            console.log(result.rows)
+            res.json(result.rows)
         }).catch((error) => {
             console.log(`${error}`)
         })
