@@ -878,3 +878,51 @@ BEGIN
     DELETE FROM printer_consumable_movement WHERE id = id_printer_consumable_movement;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION make_move_printer_hardware(
+    multi_users BOOLEAN,
+    building TEXT,
+    room TEXT,
+    department TEXT,
+    employee_position TEXT,
+    employee_name TEXT,
+    type_printer_hardware TEXT,
+    characteristics_printer_hardware TEXT,
+    date TIMESTAMP WITH TIME ZONE,
+    stock_label TEXT,
+    exploitation_label TEXT)
+RETURNS VOID
+AS $$
+DECLARE
+    id_printer_hardware INTEGER;
+    id_new_printer_place INTEGER;
+BEGIN
+    SELECT id INTO id_printer_hardware FROM printer_hardware WHERE status LIKE stock_label AND type LIKE type_printer_hardware AND characteristics LIKE characteristics_printer_hardware LIMIT 1;
+    INSERT INTO printer_place(multi_users, building, room, department, employee_position, employee_name, id_printer_hardware) VALUES(multi_users, building, room, department, employee_position, employee_name, id_printer_hardware) RETURNING id INTO id_new_printer_place;
+    INSERT INTO printer_hardware_movement(id_printer_hardware, id_printer_place, building, room, department, employee_position, employee_name, date, status) VALUES(id_printer_hardware, id_new_printer_place, building, room, department, employee_position, employee_name, date, exploitation_label);
+    UPDATE printer_hardware SET status = exploitation_label, id_printer_place = id_new_printer_place WHERE id = id_printer_hardware;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE FUNCTION make_move_printer_consumable(
+    id_printer_consumable_for_add INTEGER,
+    id_printer_place_for_add INTEGER,
+    date TIMESTAMP WITH TIME ZONE,
+    status_exploitation TEXT)
+RETURNS VOID
+AS $$
+DECLARE
+    printer_place_for_add RECORD;
+BEGIN
+    SELECT * INTO printer_place_for_add FROM printer_place WHERE printer_place.id = id_printer_place_for_add;
+    INSERT INTO printer_consumable_movement(id_printer_consumable, id_printer_place, building, room, department, employee_position, employee_name, id_printer_hardware, date)
+        VALUES(id_printer_consumable_for_add, printer_place_for_add.id, printer_place_for_add.building, printer_place_for_add.room, printer_place_for_add.department, printer_place_for_add.employee_position, printer_place_for_add.employee_name, printer_place_for_add.id_printer_hardware, date);
+    UPDATE printer_consumable SET status = status_exploitation WHERE id = id_printer_consumable_for_add;
+END;
+$$ LANGUAGE plpgsql;
+
+

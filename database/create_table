@@ -1,0 +1,22 @@
+CREATE TABLE printer_hardware_movement(
+    id SERIAL PRIMARY KEY,
+    id_printer_hardware INTEGER REFERENCES printer_hardware(id),
+    id_printer_place INTEGER REFERENCES printer_place(id),
+    building TEXT,
+    room TEXT,
+    department TEXT,
+    employee_position TEXT,
+    employee_name TEXT,
+    date TIMESTAMP WITH TIME ZONE,
+    status TEXT);
+
+
+
+CREATE TABLE trebovaniya(
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    date TIMESTAMP WITH TIME ZONE,
+    type_material_values TEXT,
+    contractor TEXT,
+    an_invoice_for_payment TEXT,
+    shipping_document TEXT,
+    comment TEXT);
