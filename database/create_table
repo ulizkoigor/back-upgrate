@@ -15,7 +15,7 @@ CREATE TABLE printer_hardware_movement(
 CREATE TABLE trebovaniya(
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     date TIMESTAMP WITH TIME ZONE,
-    type_material_values TEXT,
+    type_material_assets TEXT,
     contractor TEXT,
     an_invoice_for_payment TEXT,
     shipping_document TEXT,
