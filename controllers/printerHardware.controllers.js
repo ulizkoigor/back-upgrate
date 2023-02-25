@@ -1,6 +1,57 @@
 const pool = require('../database/keys')
 
-class printerPlacesController {
+class printerHardwareController {
+
+    selectPrinterHardware = async (req, res) => {
+        let {idPrinterHardware,
+            statusPrinterHardware,
+            typePrinterHardware,
+            characteristicsPrinterHardware,
+            nomenclatureNumberPrinterHardware,
+            idRequirementPrinterHardware,
+            idPrinterPlace,
+            comment} = req.query
+
+        if (idPrinterHardware === '')
+            idPrinterHardware = '%'
+        if (characteristicsPrinterHardware === '')
+            characteristicsPrinterHardware = '%'
+        if (nomenclatureNumberPrinterHardware === '')
+            nomenclatureNumberPrinterHardware = '%'
+        if (idRequirementPrinterHardware === '')
+            idRequirementPrinterHardware = '%'
+        if (idPrinterPlace === '')
+            idPrinterPlace = '%'
+        if (comment === '')
+            comment = '%'
+
+        await pool.query(`
+            SELECT id id_printer_hardware,
+                   status status_printer_hardware,
+                   type type_printer_hardware,
+                   characteristics characteristics_printer_hardware,
+                   nomenclature_number nomenclature_number_printer_hardware,
+                   id_requirement id_requirement_printer_hardware,
+                   id_printer_place id_printer_place,
+                   comment comment_printer_hardware                    
+            FROM printer_hardware
+            WHERE id::TEXT LIKE '${idPrinterHardware}'
+            AND   status LIKE '${statusPrinterHardware}'
+            AND   type LIKE '${typePrinterHardware}'
+            AND   LOWER(characteristics) LIKE LOWER('%${characteristicsPrinterHardware}%')
+            AND   LOWER(nomenclature_number) LIKE LOWER('%${nomenclatureNumberPrinterHardware}%')
+            AND   COALESCE(id_requirement, 0)::TEXT LIKE '${idRequirementPrinterHardware}'
+            AND   COALESCE(id_printer_place, 0)::TEXT LIKE '${idPrinterPlace}'
+            AND   LOWER(comment) LIKE LOWER('%${comment}%')
+            ORDER BY id DESC`)
+            .then((result) => {
+                console.log(result.rows)
+                res.json(result.rows)
+            }).catch((error) => {
+                console.log(error)
+                res.status(404).send(`${error}`)
+            })
+    }
 
     makeMovePrinterConsumable = async (req, res) => {
         await pool.query(`
@@ -69,31 +120,7 @@ class printerPlacesController {
             })
     }
 
-    selectPrinterHardware = async (req, res) => {
-        console.log(req.query)
-        await pool.query(`SELECT * FROM merge_tables_printer_hardware_and_printer_place('${req.query.statusPrinterHardware}',
-                                                                                        '${req.query.idPrinterHardware}',
-                                                                                        '${req.query.typePrinterHardware}',
-                                                                                        '%${req.query.characteristicsPrinterHardware}%',
-                                                                                        '%${req.query.nomenclatureNumber}',
-                                                                                        '${req.query.idTrebovaniya}')
-                          WHERE (date >= '${req.query.dateStartPeriod}' AND
-                                 date <= '${req.query.dateEndPeriod}') AND
-                                 id_printer_place LIKE '${req.query.idPrinterPlace}' AND
-                                 building LIKE '${req.query.building}' AND
-                                 room LIKE '%${req.query.room}%' AND
-                                 department LIKE '${req.query.department}' AND
-                                 LOWER(employee_position) LIKE LOWER('%${req.query.employeePosition}%') AND
-                                 LOWER(employee_name) LIKE LOWER('%${req.query.employeeName}%') AND
-                                 multi_users::TEXT LIKE '${req.query.multiUsers}'
-                          ORDER BY id_printer_hardware DESC`)
-            .then((result) => {
-                console.log(result.rows)
-            res.json(result.rows)
-        }).catch((error) => {
-            console.log(`${error}`)
-        })
-    }
+
 
     selectPrinterConsumable = async (req, res) => { // подумать о названии loadFormDB
         await pool.query(`
@@ -309,4 +336,4 @@ class printerPlacesController {
     }
 }
 
-module.exports = new printerPlacesController()
+module.exports = new printerHardwareController()

@@ -12,11 +12,22 @@ CREATE TABLE printer_hardware_movement(
 
 
 
-CREATE TABLE trebovaniya(
+CREATE TABLE requirement(
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     date TIMESTAMP WITH TIME ZONE,
     type_material_assets TEXT,
     contractor TEXT,
     an_invoice_for_payment TEXT,
     shipping_document TEXT,
+    comment TEXT);
+
+
+CREATE TABLE printer_hardware(
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    status TEXT,
+    type TEXT,
+    characteristics TEXT,
+    nomenclature_number TEXT,
+    id_printer_place BIGINT REFERENCES printer_place(id),
+    id_requirement BIGINT REFERENCES requirement(id),
     comment TEXT);

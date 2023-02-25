@@ -688,7 +688,7 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE FUNCTION merge_tables_printer_hardware_and_printer_place(
+CREATE FUNCTION select_printer_hardware(
     status_printer_hardware_for_search TEXT,
     id_printer_hardware_for_search TEXT,
     type_printer_hardware_for_search TEXT,
@@ -922,6 +922,46 @@ BEGIN
     INSERT INTO printer_consumable_movement(id_printer_consumable, id_printer_place, building, room, department, employee_position, employee_name, id_printer_hardware, date)
         VALUES(id_printer_consumable_for_add, printer_place_for_add.id, printer_place_for_add.building, printer_place_for_add.room, printer_place_for_add.department, printer_place_for_add.employee_position, printer_place_for_add.employee_name, printer_place_for_add.id_printer_hardware, date);
     UPDATE printer_consumable SET status = status_exploitation WHERE id = id_printer_consumable_for_add;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+SELECT * FROM merge_tables_printer_hardware_and_printer_place('${req.query.statusPrinterHardware}',
+                                                                                        '${req.query.idPrinterHardware}',
+                                                                                        '${req.query.typePrinterHardware}',
+                                                                                        '%${req.query.characteristicsPrinterHardware}%',
+                                                                                        '%${req.query.nomenclatureNumber}',
+                                                                                        '${req.query.idRequirement}')
+                          WHERE (date >= '${req.query.dateStartPeriod}' AND
+                                 date <= '${req.query.dateEndPeriod}') AND
+                                 id_printer_place LIKE '${req.query.idPrinterPlace}' AND
+                                 building LIKE '${req.query.building}' AND
+                                 room LIKE '%${req.query.room}%' AND
+                                 department LIKE '${req.query.department}' AND
+                                 LOWER(employee_position) LIKE LOWER('%${req.query.employeePosition}%') AND
+                                 LOWER(employee_name) LIKE LOWER('%${req.query.employeeName}%') AND
+                                 multi_users::TEXT LIKE '${req.query.multiUsers}'
+                          ORDER BY id_printer_hardware DESC
+
+
+
+CREATE FUNCTION create_hardware(id_new_requirement INTEGER, hardware_list JSON)
+RETURNS VOID AS $$
+DECLARE
+  hardware_element JSON;
+  count INTEGER;
+BEGIN
+  FOR hardware_element IN SELECT json_array_elements(hardware_list) LOOP
+    IF hardware_element ->> 'supertypeHardware' = 'printerHardware' THEN
+      count := CAST(hardware_element ->> 'count' AS INTEGER);
+      WHILE count <> 0 LOOP
+        INSERT INTO printer_hardware(status, type, characteristics, nomenclature_number, id_requirement, id_printer_place, comment)
+        VALUES('На складе', hardware_element ->> 'typeHardware', hardware_element ->> 'characteristicsHardware', hardware_element ->> 'nomenclatureNumberHardware', id_new_requirement, null, '');
+        count := count - 1;
+      END LOOP;
+    END IF;
+  END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 

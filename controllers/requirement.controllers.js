@@ -7,12 +7,26 @@ const path = require("path");
 class requirementController {
 
     createRequirement = async (req, res) => {
-        console.log(req.body.params)
-        const {date, typeMaterialAssets, contractor, anInvoiceForPayment, shippingDocument, comment} = req.body.params
-        await pool.query(`INSERT INTO requirement(date, type_material_assets, contractor, an_invoice_for_payment, shipping_document, comment)
+        const {date, typeMaterialAssets, contractor, anInvoiceForPayment, shippingDocument, comment, hardwareList} = req.body.params
+        console.log(hardwareList)
+        console.log(JSON.stringify(hardwareList))
+        await pool.query(`
+            INSERT INTO requirement(date, type_material_assets, contractor, an_invoice_for_payment, shipping_document, comment)
             VALUES('${date}', '${typeMaterialAssets}', '${contractor}', '${anInvoiceForPayment}', '${shippingDocument}', '${comment}')
-        `).then(() => {
-            res.send()
+            RETURNING id
+        `).then(async (result) => {
+            if (hardwareList.length > 0) {
+                console.log('asd')
+                await pool.query(`SELECT create_hardware(${result.rows[0].id}, '${JSON.stringify(hardwareList)}')
+                `).then(() => {
+                    res.send()
+                }).catch((error) => {
+                    console.log(error)
+                    res.status(404).send(`${error}`)
+                })
+            } else
+                res.send()
+
         }).catch((error) => {
             res.status(404).send(`${error}`)
         })
