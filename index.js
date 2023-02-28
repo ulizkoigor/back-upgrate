@@ -7,6 +7,8 @@ const requirementRouter = require('./routes/requirement.routes')
 const printerHardwareRouter = require('./routes/printerHardware.routes')
 const printerPlaceRouter = require('./routes/printerPlace.routes')
 
+const moverRouter = require('./routes/mover.routes')
+
 const hardwareForWorkplaceRouter = require('./routes/hardwareForWorkplace.routes')
 const consumableForPrintersRouter = require('./routes/consumableForPrinters.routes')
 const workplacesRouter = require('./routes/workplaces.routes')
@@ -30,6 +32,8 @@ app.use('/requirement/', requirementRouter)
 
 app.use('/printerHardware/', printerHardwareRouter)
 app.use('/printerPlace/', printerPlaceRouter)
+
+app.use('/mover/', moverRouter)
 
 app.use('/hardwareForWorkplace', hardwareForWorkplaceRouter)
 app.use('/consumableForPrinters/', consumableForPrintersRouter)

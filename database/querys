@@ -966,3 +966,33 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+
+CREATE FUNCTION move_printer_hardware(id_printer_hardware_for_move BIGINT, id_printer_place_for_move INTEGER, date TIMESTAMP WITH TIME ZONE)
+RETURNS VOID AS $$
+DECLARE
+    record_printer_hardware RECORD;
+    record_printer_place RECORD;
+BEGIN
+    UPDATE printer_hardware SET status = 'В эксплуатации', id_printer_place = id_printer_place_for_move WHERE id = id_printer_hardware_for_move;
+    SELECT * INTO record_printer_hardware FROM printer_hardware WHERE id = id_printer_hardware_for_move;
+    SELECT * INTO record_printer_place FROM printer_place WHERE id = id_printer_place_for_move;
+    INSERT INTO movement_printer_hardware(id_printer_hardware,
+                                          status,
+                                          id_printer_place,
+                                          building_at_time_of_move,
+                                          room_at_time_of_move,
+                                          department_at_time_of_move,
+                                          employee_position_at_time_of_move,
+                                          employee_name_at_time_of_move,
+                                          date)
+    VALUES(id_printer_hardware_for_move,
+           record_printer_hardware.status,
+           id_printer_place_for_move,
+           record_printer_place.building,
+           record_printer_place.room,
+           record_printer_place.department,
+           record_printer_place.employee_position,
+           record_printer_place.employee_name,
+           date);
+END;
+$$ LANGUAGE plpgsql;
