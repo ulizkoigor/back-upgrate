@@ -35,6 +35,8 @@ class printerHardwareController {
         let {idMovementPrinterHardware,
             dateMovementPrinterHardware,
             idPrinterHardware,
+            typePrinterHardware,
+            characteristicsPrinterHardware,
             statusPrinterHardware,
             idPrinterPlace,
             buildingAtTimeOfMove,
@@ -54,6 +56,8 @@ class printerHardwareController {
                 dateMovementPrinterHardware.endPeriod = new Date().toISOString().split('T')[0]
             if (idPrinterHardware === '')
                 idPrinterHardware = '%'
+            if (characteristicsPrinterHardware === '')
+                characteristicsPrinterHardware = '%'
             if (idPrinterPlace === '')
                 idPrinterPlace = '%'
             if (roomAtTimeOfMove === '')
@@ -65,17 +69,32 @@ class printerHardwareController {
 
             await pool.query(`
 
-            SELECT * FROM movement_printer_hardware 
-            WHERE id::TEXT LIKE '${idMovementPrinterHardware}'
-            AND (date >= '${dateMovementPrinterHardware.startPeriod} 00:00:00' AND date <= '${dateMovementPrinterHardware.endPeriod} 23:59:59')
-            AND id_printer_hardware::TEXT LIKE '${idPrinterHardware}'
-            AND status LIKE '${statusPrinterHardware}'
-            AND COALESCE(id_printer_place, 0)::TEXT LIKE '${idPrinterPlace}'
-            AND building_at_time_of_move LIKE '${buildingAtTimeOfMove}'
-            AND room_at_time_of_move LIKE '%${roomAtTimeOfMove}%'
-            AND department_at_time_of_move LIKE '${departmentAtTimeOfMove}'
-            AND LOWER(employee_position_at_time_of_move) LIKE LOWER('%${employeePositionAtTimeOfMove}%')
-            AND LOWER(employee_name_at_time_of_move) LIKE LOWER('%${employeeNameAtTimeOfMove}%')
+            SELECT movement_printer_hardware.id id_movement_printer_hardware,
+                   movement_printer_hardware.date date_movement_printer_hardware,
+                   movement_printer_hardware.id id_printer_hardware,
+                   printer_hardware.type type_printer_hardware,
+                   printer_hardware.characteristics characteristics_printer_hardware,
+                   movement_printer_hardware.status status_printer_hardware,
+                   movement_printer_hardware.id_printer_place id_printer_place,
+                   movement_printer_hardware.building_at_time_of_move building_at_time_of_move,
+                   movement_printer_hardware.room_at_time_of_move room_at_time_of_move,
+                   movement_printer_hardware.department_at_time_of_move department_at_time_of_move,
+                   movement_printer_hardware.employee_position_at_time_of_move employee_position_at_time_of_move,
+                   movement_printer_hardware.employee_name_at_time_of_move employee_name_at_time_of_move
+            FROM movement_printer_hardware
+            LEFT JOIN printer_hardware ON  movement_printer_hardware.id_printer_hardware = printer_hardware.id
+            WHERE movement_printer_hardware.id::TEXT LIKE '${idMovementPrinterHardware}'
+            AND (movement_printer_hardware.date >= '${dateMovementPrinterHardware.startPeriod} 00:00:00' AND movement_printer_hardware.date <= '${dateMovementPrinterHardware.endPeriod} 23:59:59')
+            AND movement_printer_hardware.id_printer_hardware::TEXT LIKE '${idPrinterHardware}'
+            AND printer_hardware.type LIKE '${typePrinterHardware}'
+            AND printer_hardware.characteristics LIKE '%${characteristicsPrinterHardware}%'
+            AND movement_printer_hardware.status LIKE '${statusPrinterHardware}'
+            AND COALESCE(movement_printer_hardware.id_printer_place, 0)::TEXT LIKE '${idPrinterPlace}'
+            AND movement_printer_hardware.building_at_time_of_move LIKE '${buildingAtTimeOfMove}'
+            AND movement_printer_hardware.room_at_time_of_move LIKE '%${roomAtTimeOfMove}%'
+            AND movement_printer_hardware.department_at_time_of_move LIKE '${departmentAtTimeOfMove}'
+            AND LOWER(movement_printer_hardware.employee_position_at_time_of_move) LIKE LOWER('%${employeePositionAtTimeOfMove}%')
+            AND LOWER(movement_printer_hardware.employee_name_at_time_of_move) LIKE LOWER('%${employeeNameAtTimeOfMove}%')
             ORDER BY date DESC
                   
         `).then((result) => {
